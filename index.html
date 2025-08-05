@@ -5,51 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Animación de Cuadrícula de Círculos (Conexión Vectorial)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'JetBrains Mono', monospace;
             margin: 0;
-            overflow: hidden; /* Evita las barras de desplazamiento */
+            overflow: hidden;
+            background-color: #000000; /* Negro puro */
+            color: #ffffff; /* Blanco puro */
+        }
+        
+        /* Sombra sutil para los controles flotantes */
+        .floating-controls {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .floating-controls h3 {
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
         }
         canvas {
             display: block;
-            background-color: #111827; /* Gris oscuro para el fondo */
+            background-color: #000000; /* Negro puro para el canvas */
         }
         
-        /* Estilos personalizados para el slider */
+        /* Estilos personalizados para el slider - Terminal Verde */
         .slider::-webkit-slider-thumb {
             appearance: none;
             height: 16px;
             width: 16px;
-            border-radius: 50%;
-            background: #3B82F6;
+            border-radius: 2px; /* Cuadrado para estilo terminal */
+            background: #00ff00; /* Verde terminal */
             cursor: pointer;
-            border: 2px solid #1E40AF;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: 1px solid #ffffff;
+            box-shadow: none;
         }
         
         .slider::-moz-range-thumb {
             height: 16px;
             width: 16px;
-            border-radius: 50%;
-            background: #3B82F6;
+            border-radius: 2px;
+            background: #00ff00;
             cursor: pointer;
-            border: 2px solid #1E40AF;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: 1px solid #ffffff;
+            box-shadow: none;
+        }
+        
+        .slider {
+            background: #333333 !important;
+            border: 1px solid #ffffff;
+        }
+        
+        /* Checkbox terminal style */
+        .terminal-checkbox {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #ffffff;
+            background: #000000;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .terminal-checkbox:checked {
+            background: #00ff00;
+        }
+        
+        .terminal-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: -2px;
+            left: 2px;
+            color: #000000;
+            font-size: 12px;
+            font-weight: bold;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white">
+<body class="bg-black text-white">
     
-    <!-- Panel de Control -->
-    <div class="fixed top-4 left-4 bg-black bg-opacity-70 backdrop-blur-sm rounded-lg p-4 z-10 border border-gray-600">
-        <div class="flex flex-col space-y-4">
+    <!-- Controles Flotantes -->
+    <div class="fixed top-4 left-4 z-10 floating-controls" style="font-family: 'JetBrains Mono', monospace;">
+        <div class="flex flex-col space-y-6">
             <!-- Control de Tamaño -->
             <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-gray-200">Tamaño Máximo</h3>
+                <h3 class="text-sm font-medium text-white">size_max</h3>
                 <div class="flex items-center space-x-3">
-                    <span class="text-xs text-gray-400">0.3x</span>
+                    <span class="text-xs text-white">0.3</span>
                     <input 
                         type="range" 
                         id="sizeSlider" 
@@ -57,20 +98,20 @@
                         max="1.5" 
                         step="0.1" 
                         value="0.8"
-                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                        class="flex-1 h-2 appearance-none cursor-pointer slider"
                     >
-                    <span class="text-xs text-gray-400">1.5x</span>
+                    <span class="text-xs text-white">1.5</span>
                 </div>
                 <div class="text-center">
-                    <span class="text-xs text-blue-400 font-medium" id="sizeValue">0.8x</span>
+                    <span class="text-xs text-green-400 font-medium" id="sizeValue">0.8</span>
                 </div>
             </div>
             
             <!-- Control de Conexión -->
             <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-gray-200">Factor de Conexión</h3>
+                <h3 class="text-sm font-medium text-white">connection_factor</h3>
                 <div class="flex items-center space-x-3">
-                    <span class="text-xs text-gray-400">0.5x</span>
+                    <span class="text-xs text-white">0.5</span>
                     <input 
                         type="range" 
                         id="connectionSlider" 
@@ -78,20 +119,20 @@
                         max="2.0" 
                         step="0.1" 
                         value="1.0"
-                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                        class="flex-1 h-2 appearance-none cursor-pointer slider"
                     >
-                    <span class="text-xs text-gray-400">2.0x</span>
+                    <span class="text-xs text-white">2.0</span>
                 </div>
                 <div class="text-center">
-                    <span class="text-xs text-green-400 font-medium" id="connectionValue">1.0x</span>
+                    <span class="text-xs text-green-400 font-medium" id="connectionValue">1.0</span>
                 </div>
             </div>
             
             <!-- Control de Rango del Mouse -->
             <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-gray-200">Rango del Mouse</h3>
+                <h3 class="text-sm font-medium text-white">mouse_range</h3>
                 <div class="flex items-center space-x-3">
-                    <span class="text-xs text-gray-400">100px</span>
+                    <span class="text-xs text-white">100</span>
                     <input 
                         type="range" 
                         id="mouseRangeSlider" 
@@ -99,30 +140,30 @@
                         max="500" 
                         step="25" 
                         value="250"
-                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                        class="flex-1 h-2 appearance-none cursor-pointer slider"
                     >
-                    <span class="text-xs text-gray-400">500px</span>
+                    <span class="text-xs text-white">500</span>
                 </div>
                 <div class="text-center">
-                    <span class="text-xs text-purple-400 font-medium" id="mouseRangeValue">250px</span>
+                    <span class="text-xs text-green-400 font-medium" id="mouseRangeValue">250</span>
                 </div>
             </div>
             
             <!-- Control de Conexiones Ortogonales -->
             <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-gray-200">Patrón de Conexión</h3>
+                <h3 class="text-sm font-medium text-white">orthogonal_mode</h3>
                 <div class="flex items-center space-x-3">
                     <input 
                         type="checkbox" 
                         id="orthogonalToggle" 
-                        class="w-4 h-4 text-orange-500 bg-gray-700 border-gray-600 rounded focus:ring-orange-500 focus:ring-2"
+                        class="terminal-checkbox"
                     >
-                    <label for="orthogonalToggle" class="text-sm text-gray-300 cursor-pointer">
-                        Solo Horizontal/Vertical
+                    <label for="orthogonalToggle" class="text-sm text-white cursor-pointer">
+                        [x] horizontal_vertical_only
                     </label>
                 </div>
                 <div class="text-center">
-                    <span class="text-xs text-orange-400 font-medium" id="orthogonalStatus">Todas las direcciones</span>
+                    <span class="text-xs text-green-400 font-medium" id="orthogonalStatus">all_directions</span>
                 </div>
             </div>
         </div>
@@ -277,19 +318,19 @@
         }
         
         function updateSizeDisplay() {
-            document.getElementById('sizeValue').textContent = sizeMultiplier.toFixed(1) + 'x';
+            document.getElementById('sizeValue').textContent = sizeMultiplier.toFixed(1);
         }
         
         function updateConnectionDisplay() {
-            document.getElementById('connectionValue').textContent = connectionFactor.toFixed(1) + 'x';
+            document.getElementById('connectionValue').textContent = connectionFactor.toFixed(1);
         }
         
         function updateMouseRangeDisplay() {
-            document.getElementById('mouseRangeValue').textContent = mouseEffectRadius + 'px';
+            document.getElementById('mouseRangeValue').textContent = mouseEffectRadius;
         }
         
         function updateOrthogonalDisplay() {
-            const status = orthogonalOnly ? 'Solo Horizontal/Vertical' : 'Todas las direcciones';
+            const status = orthogonalOnly ? 'horizontal_vertical_only' : 'all_directions';
             document.getElementById('orthogonalStatus').textContent = status;
         }
         
@@ -323,7 +364,7 @@
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             circles.forEach(circle => circle.update());
-            ctx.fillStyle = '#9CA3AF';
+            ctx.fillStyle = '#ffffff'; // Círculos blancos para tema terminal
             circles.forEach(c => {
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, Math.max(0, c.radius), 0, Math.PI * 2);
