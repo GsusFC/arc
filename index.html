@@ -107,6 +107,24 @@
                     <span class="text-xs text-purple-400 font-medium" id="mouseRangeValue">250px</span>
                 </div>
             </div>
+            
+            <!-- Control de Conexiones Ortogonales -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-gray-200">Patrón de Conexión</h3>
+                <div class="flex items-center space-x-3">
+                    <input 
+                        type="checkbox" 
+                        id="orthogonalToggle" 
+                        class="w-4 h-4 text-orange-500 bg-gray-700 border-gray-600 rounded focus:ring-orange-500 focus:ring-2"
+                    >
+                    <label for="orthogonalToggle" class="text-sm text-gray-300 cursor-pointer">
+                        Solo Horizontal/Vertical
+                    </label>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-orange-400 font-medium" id="orthogonalStatus">Todas las direcciones</span>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -125,7 +143,8 @@
         let spacing; // Agregar spacing como variable global
         let sizeMultiplier = 0.8; // Multiplicador del tamaño
         let connectionFactor = 1.0; // Factor de conexión
-        let mouseEffectRadius = 250; // Rango de acción del mouse (ahora variable) 
+        let mouseEffectRadius = 250; // Rango de acción del mouse (ahora variable)
+        let orthogonalOnly = false; // Solo conexiones horizontales/verticales 
         let mouse = {
             x: -1000,
             y: -1000
@@ -134,12 +153,14 @@
 
         // --- Clase para representar un Círculo ---
         class Circle {
-            constructor(x, y, initialRadius, maxRadius) {
+            constructor(x, y, initialRadius, maxRadius, gridI, gridJ) {
                 this.x = x; 
                 this.y = y; 
                 this.baseRadius = initialRadius; 
                 this.maxRadius = maxRadius; 
-                this.radius = initialRadius; 
+                this.radius = initialRadius;
+                this.gridI = gridI; // Coordenada de cuadrícula i
+                this.gridJ = gridJ; // Coordenada de cuadrícula j
             }
 
             update() {
@@ -170,7 +191,19 @@
             return (4 / 3) * Math.tan(angle / 4) * radius;
         }
 
+        // --- Función para verificar si dos círculos son vecinos ortogonales ---
+        function areOrthogonalNeighbors(c1, c2) {
+            const di = Math.abs(c1.gridI - c2.gridI);
+            const dj = Math.abs(c1.gridJ - c2.gridJ);
+            return (di === 1 && dj === 0) || (di === 0 && dj === 1);
+        }
+        
         function connectCircles(c1, c2) {
+            // Verificar restricción ortogonal si está activada
+            if (orthogonalOnly && !areOrthogonalNeighbors(c1, c2)) {
+                return;
+            }
+            
             const r1 = Math.max(0, c1.radius);
             const r2 = Math.max(0, c2.radius);
             const d = Math.sqrt((c1.x - c2.x) ** 2 + (c1.y - c2.y) ** 2);
@@ -255,6 +288,11 @@
             document.getElementById('mouseRangeValue').textContent = mouseEffectRadius + 'px';
         }
         
+        function updateOrthogonalDisplay() {
+            const status = orthogonalOnly ? 'Solo Horizontal/Vertical' : 'Todas las direcciones';
+            document.getElementById('orthogonalStatus').textContent = status;
+        }
+        
         // --- Funciones Principales ---
         function init() {
             canvas.width = window.innerWidth;
@@ -277,7 +315,7 @@
                 for (let j = 0; j < gridCount; j++) {
                     const x = startX + i * spacing;
                     const y = startY + j * spacing;
-                    circles.push(new Circle(x, y, baseRadius, maxRadius));
+                    circles.push(new Circle(x, y, baseRadius, maxRadius, i, j));
                 }
             }
         }
@@ -323,11 +361,18 @@
             updateMouseRangeDisplay();
         });
         
+        // Event listener para el toggle ortogonal
+        document.getElementById('orthogonalToggle').addEventListener('change', (event) => {
+            orthogonalOnly = event.target.checked;
+            updateOrthogonalDisplay();
+        });
+        
         // Inicializar
         init();
         updateSizeDisplay();
         updateConnectionDisplay();
         updateMouseRangeDisplay();
+        updateOrthogonalDisplay();
         animate();
     </script>
 </body>
