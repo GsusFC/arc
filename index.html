@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animación de Cuadrícula de Círculos (Conexión Vectorial)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Evita las barras de desplazamiento */
+        }
+        canvas {
+            display: block;
+            background-color: #111827; /* Gris oscuro para el fondo */
+        }
+        
+        /* Estilos personalizados para el slider */
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+            border: 2px solid #1E40AF;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .slider::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3B82F6;
+            cursor: pointer;
+            border: 2px solid #1E40AF;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    
+    <!-- Panel de Control -->
+    <div class="fixed top-4 left-4 bg-black bg-opacity-70 backdrop-blur-sm rounded-lg p-4 z-10 border border-gray-600">
+        <div class="flex flex-col space-y-4">
+            <!-- Control de Tamaño -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-gray-200">Tamaño Máximo</h3>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-gray-400">0.3x</span>
+                    <input 
+                        type="range" 
+                        id="sizeSlider" 
+                        min="0.3" 
+                        max="1.5" 
+                        step="0.1" 
+                        value="0.8"
+                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                    >
+                    <span class="text-xs text-gray-400">1.5x</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-blue-400 font-medium" id="sizeValue">0.8x</span>
+                </div>
+            </div>
+            
+            <!-- Control de Conexión -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-gray-200">Factor de Conexión</h3>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-gray-400">0.5x</span>
+                    <input 
+                        type="range" 
+                        id="connectionSlider" 
+                        min="0.5" 
+                        max="2.0" 
+                        step="0.1" 
+                        value="1.0"
+                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                    >
+                    <span class="text-xs text-gray-400">2.0x</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-green-400 font-medium" id="connectionValue">1.0x</span>
+                </div>
+            </div>
+            
+            <!-- Control de Rango del Mouse -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-gray-200">Rango del Mouse</h3>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-gray-400">100px</span>
+                    <input 
+                        type="range" 
+                        id="mouseRangeSlider" 
+                        min="100" 
+                        max="500" 
+                        step="25" 
+                        value="250"
+                        class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                    >
+                    <span class="text-xs text-gray-400">500px</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-purple-400 font-medium" id="mouseRangeValue">250px</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="circleCanvas"></canvas>
+
+    <script>
+        // --- Configuración del Canvas ---
+        const canvas = document.getElementById('circleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Variables Globales ---
+        let circles = [];
+        const gridCount = 5;
+        let baseRadius; 
+        let maxRadius;  
+        let spacing; // Agregar spacing como variable global
+        let sizeMultiplier = 0.8; // Multiplicador del tamaño
+        let connectionFactor = 1.0; // Factor de conexión
+        let mouseEffectRadius = 250; // Rango de acción del mouse (ahora variable) 
+        let mouse = {
+            x: -1000,
+            y: -1000
+        };
+        let animationFrameId;
+
+        // --- Clase para representar un Círculo ---
+        class Circle {
+            constructor(x, y, initialRadius, maxRadius) {
+                this.x = x; 
+                this.y = y; 
+                this.baseRadius = initialRadius; 
+                this.maxRadius = maxRadius; 
+                this.radius = initialRadius; 
+            }
+
+            update() {
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < mouseEffectRadius) {
+                    const scaleFactor = 1 - (distance / mouseEffectRadius);
+                    this.radius = this.baseRadius + (this.maxRadius - this.baseRadius) * scaleFactor;
+                } else {
+                    this.radius += (this.baseRadius - this.radius) * 0.1; 
+                }
+            }
+        }
+        
+        // --- LÓGICA DE CONEXIÓN VECTORIAL (VERSIÓN FINAL CORREGIDA) ---
+
+        function solveQuadratic(a, b, c) {
+            if (Math.abs(a) < 1e-6) return b !== 0 ? [-c / b] : [];
+            const d = b * b - 4 * a * c;
+            if (d < 0) return [];
+            const rd = Math.sqrt(d);
+            return [(-b + rd) / (2 * a), (-b - rd) / (2 * a)];
+        }
+
+        function getHandleLength(angle, radius) {
+            return (4 / 3) * Math.tan(angle / 4) * radius;
+        }
+
+        function connectCircles(c1, c2) {
+            const r1 = Math.max(0, c1.radius);
+            const r2 = Math.max(0, c2.radius);
+            const d = Math.sqrt((c1.x - c2.x) ** 2 + (c1.y - c2.y) ** 2);
+
+            // Aplicar factor de conexión para permitir conexiones a distancia
+            if (d > (r1 + r2) * connectionFactor || d <= Math.abs(r1 - r2)) {
+                return;
+            }
+
+            const centerAngle = Math.PI / 2;
+            const cos_ca = Math.cos(centerAngle);
+
+            const a_eq = 2 - 2 * cos_ca;
+            const b_eq = 2 * (1 - cos_ca) * (r1 + r2);
+            const c_eq = r1 * r1 + r2 * r2 - d * d - 2 * r1 * r2 * cos_ca;
+            
+            const solutions = solveQuadratic(a_eq, b_eq, c_eq);
+            const r = solutions.filter(s => s > 0).reduce((min, s) => Math.min(min, s), Infinity);
+
+            if (!isFinite(r)) return;
+
+            const a = r1 + r;
+            const b = r2 + r;
+
+            const cos_t1 = Math.max(-1, Math.min(1, (a * a + d * d - b * b) / (2 * a * d)));
+            const cos_t2 = Math.max(-1, Math.min(1, (b * b + d * d - a * a) / (2 * b * d)));
+            
+            const t1 = Math.acos(cos_t1);
+            const t2 = Math.acos(cos_t2);
+
+            const angle_o1_o2 = Math.atan2(c2.y - c1.y, c2.x - c1.x);
+
+            const p1 = { x: c1.x + r1 * Math.cos(angle_o1_o2 + t1), y: c1.y + r1 * Math.sin(angle_o1_o2 + t1) };
+            const p2 = { x: c2.x + r2 * Math.cos(angle_o1_o2 + Math.PI - t2), y: c2.y + r2 * Math.sin(angle_o1_o2 + Math.PI - t2) };
+            const p3 = { x: c2.x + r2 * Math.cos(angle_o1_o2 + Math.PI + t2), y: c2.y + r2 * Math.sin(angle_o1_o2 + Math.PI + t2) };
+            const p4 = { x: c1.x + r1 * Math.cos(angle_o1_o2 - t1), y: c1.y + r1 * Math.sin(angle_o1_o2 - t1) };
+
+            const handleLength = getHandleLength(centerAngle, r);
+            
+            // --- CORRECCIÓN DE LA DIRECCIÓN DE LOS MANEJADORES ---
+            const hpi = Math.PI / 2;
+            const angle_p1_h = angle_o1_o2 + t1 - hpi;
+            const angle_p2_h = angle_o1_o2 + Math.PI - t2 + hpi; // Corregido: +hpi
+            const angle_p3_h = angle_o1_o2 + Math.PI + t2 - hpi; // Corregido: -hpi
+            const angle_p4_h = angle_o1_o2 - t1 + hpi;
+
+            const cp1 = { x: p1.x + handleLength * Math.cos(angle_p1_h), y: p1.y + handleLength * Math.sin(angle_p1_h) };
+            const cp2 = { x: p2.x + handleLength * Math.cos(angle_p2_h), y: p2.y + handleLength * Math.sin(angle_p2_h) };
+            const cp3 = { x: p3.x + handleLength * Math.cos(angle_p3_h), y: p3.y + handleLength * Math.sin(angle_p3_h) };
+            const cp4 = { x: p4.x + handleLength * Math.cos(angle_p4_h), y: p4.y + handleLength * Math.sin(angle_p4_h) };
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.bezierCurveTo(cp3.x, cp3.y, cp4.x, cp4.y, p4.x, p4.y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // --- Funciones de Utilidad ---
+        function updateSizes() {
+            maxRadius = spacing * sizeMultiplier;
+            baseRadius = maxRadius / 3;
+            
+            // Actualizar todos los círculos existentes
+            circles.forEach(circle => {
+                circle.maxRadius = maxRadius;
+                circle.baseRadius = baseRadius;
+            });
+        }
+        
+        function updateSizeDisplay() {
+            document.getElementById('sizeValue').textContent = sizeMultiplier.toFixed(1) + 'x';
+        }
+        
+        function updateConnectionDisplay() {
+            document.getElementById('connectionValue').textContent = connectionFactor.toFixed(1) + 'x';
+        }
+        
+        function updateMouseRangeDisplay() {
+            document.getElementById('mouseRangeValue').textContent = mouseEffectRadius + 'px';
+        }
+        
+        // --- Funciones Principales ---
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            circles = []; 
+            const padding = 200; 
+            
+            // Calcular el tamaño del cuadrado basado en la dimensión menor
+            const squareSize = Math.min(canvas.width, canvas.height) - padding * 2;
+            
+            // Centrar el cuadrado en la pantalla
+            const startX = (canvas.width - squareSize) / 2;
+            const startY = (canvas.height - squareSize) / 2;
+            
+            // Espaciado uniforme dentro del cuadrado
+            spacing = squareSize / (gridCount - 1);
+            updateSizes(); // Usar función para actualizar tamaños
+            
+            for (let i = 0; i < gridCount; i++) {
+                for (let j = 0; j < gridCount; j++) {
+                    const x = startX + i * spacing;
+                    const y = startY + j * spacing;
+                    circles.push(new Circle(x, y, baseRadius, maxRadius));
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            circles.forEach(circle => circle.update());
+            ctx.fillStyle = '#9CA3AF';
+            circles.forEach(c => {
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, Math.max(0, c.radius), 0, Math.PI * 2);
+                ctx.fill();
+            });
+            for (let i = 0; i < circles.length; i++) {
+                for (let j = i + 1; j < circles.length; j++) {
+                    connectCircles(circles[i], circles[j]);
+                }
+            }
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // --- Event Listeners ---
+        window.addEventListener('mousemove', (event) => { mouse.x = event.clientX; mouse.y = event.clientY; });
+        window.addEventListener('mouseout', () => { mouse.x = -1000; mouse.y = -1000; });
+        window.addEventListener('resize', () => { cancelAnimationFrame(animationFrameId); init(); animate(); });
+        
+        // Event listener para el slider de tamaño
+        document.getElementById('sizeSlider').addEventListener('input', (event) => {
+            sizeMultiplier = parseFloat(event.target.value);
+            updateSizes();
+            updateSizeDisplay();
+        });
+        
+        // Event listener para el slider de conexión
+        document.getElementById('connectionSlider').addEventListener('input', (event) => {
+            connectionFactor = parseFloat(event.target.value);
+            updateConnectionDisplay();
+        });
+        
+        // Event listener para el slider de rango del mouse
+        document.getElementById('mouseRangeSlider').addEventListener('input', (event) => {
+            mouseEffectRadius = parseInt(event.target.value);
+            updateMouseRangeDisplay();
+        });
+        
+        // Inicializar
+        init();
+        updateSizeDisplay();
+        updateConnectionDisplay();
+        updateMouseRangeDisplay();
+        animate();
+    </script>
+</body>
+</html>
