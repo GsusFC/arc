@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metaballs - SVG Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+            color: #ffffff;
+        }
+        
+        .floating-controls {
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .floating-controls h3 {
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+        }
+        
+        /* Estilos para sliders */
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 2px;
+            background: #00ff00;
+            cursor: pointer;
+            border: 1px solid #ffffff;
+            box-shadow: none;
+        }
+        
+        .slider::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 2px;
+            background: #00ff00;
+            cursor: pointer;
+            border: 1px solid #ffffff;
+            box-shadow: none;
+        }
+        
+        .slider {
+            background: #333333 !important;
+            border: 1px solid #ffffff;
+        }
+        
+        /* Checkbox terminal style */
+        .terminal-checkbox {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #ffffff;
+            background: #000000;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .terminal-checkbox:checked {
+            background: #00ff00;
+        }
+        
+        .terminal-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: -2px;
+            left: 2px;
+            color: #000000;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* Botones */
+        .btn {
+            padding: 8px 12px;
+            border: 1px solid #ffffff;
+            background: #000000;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: #333333;
+        }
+        
+        .btn.active {
+            background: #00ff00;
+            color: #000000;
+        }
+        
+        .btn.danger {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+        
+        .btn.danger:hover {
+            background: #ff0000;
+            color: #ffffff;
+        }
+
+        /* Navigation button styles */
+        .nav-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ffffff;
+            padding: 8px 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #ff6b35;
+            color: #ff6b35;
+        }
+
+        .version-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff6b35;
+            color: #000000;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <!-- Version Navigation -->
+    <div class="fixed top-4 right-4 z-20 flex flex-col space-y-2">
+        <div class="px-3 py-2 bg-black border border-white text-center">
+            <div class="text-xs text-green-400 font-medium">🎨 SVG EDITOR</div>
+        </div>
+        
+        <!-- Quick Switch -->
+        <div class="flex space-x-1">
+            <button onclick="window.location.href='index.html'" 
+                    class="px-2 py-1 bg-black border border-blue-400 text-blue-400 text-xs hover:bg-blue-400 hover:text-black transition-all" 
+                    title="Canvas Dynamic">
+                🎨
+            </button>
+            <button onclick="window.location.href='svg-version.html'" 
+                    class="px-2 py-1 bg-black border border-purple-400 text-purple-400 text-xs hover:bg-purple-400 hover:text-black transition-all" 
+                    title="SVG Static">
+                📥
+            </button>
+            <button onclick="window.location.href='svg-editor.html'" 
+                    class="px-2 py-1 bg-black border border-green-400 text-green-400 text-xs hover:bg-green-400 hover:text-black transition-all" 
+                    title="SVG Editor">
+                🎨
+            </button>
+        </div>
+    </div>
+    
+    <!-- Controles Flotantes -->
+    <div class="fixed top-4 left-4 z-10 floating-controls" style="font-family: 'JetBrains Mono', monospace;">
+        <div class="flex flex-col space-y-4">
+            
+            <!-- Modo de Edición -->
+            <div class="flex flex-col space-y-2">
+                <h3 class="text-sm font-medium text-white">edit_mode</h3>
+                <div class="flex space-x-2">
+                    <button id="selectMode" class="btn active">SELECT</button>
+                    <button id="connectMode" class="btn">CONNECT</button>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-green-400" id="modeStatus">select_balls</span>
+                </div>
+
+            </div>
+            
+            <!-- Control de Tamaño de Bola Seleccionada -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-white">ball_size</h3>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-white">0</span>
+                    <input 
+                        type="range" 
+                        id="ballSizeSlider" 
+                        min="0" 
+                        max="100" 
+                        step="1" 
+                        value="30"
+                        class="flex-1 h-2 appearance-none cursor-pointer slider"
+                        disabled
+                    >
+                    <span class="text-xs text-white">100</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-green-400 font-medium" id="ballSizeValue">30</span>
+                </div>
+
+            </div>
+            
+            <!-- Factor de Conexión Global -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-white">connection_factor</h3>
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs text-white">0.5</span>
+                    <input 
+                        type="range" 
+                        id="connectionSlider" 
+                        min="0.5" 
+                        max="5.0" 
+                        step="0.1" 
+                        value="4.0"
+                        class="flex-1 h-2 appearance-none cursor-pointer slider"
+                    >
+                    <span class="text-xs text-white">5.0</span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-green-400 font-medium" id="connectionValue">1.0</span>
+                </div>
+                
+                <!-- Mode Toggle -->
+                <div class="flex justify-center space-x-2">
+                    <button id="globalMode" class="btn active text-xs px-2 py-1">GLOBAL</button>
+                    <button id="individualMode" class="btn text-xs px-2 py-1">INDIVIDUAL</button>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-gray-400" id="connectionModeStatus">affects_all_connections</span>
+                </div>
+            </div>
+            
+            <!-- Conexiones -->
+            <div class="flex flex-col space-y-2">
+                <h3 class="text-sm font-medium text-white">connections</h3>
+                <div class="flex space-x-2">
+                    <button id="clearConnections" class="btn danger">CLEAR ALL</button>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-green-400" id="connectionsCount">0 connections</span>
+                </div>
+            </div>
+            
+            <!-- Tamaño de Grid -->
+            <div class="flex flex-col space-y-3">
+                <h3 class="text-sm font-medium text-white">grid_size</h3>
+                <div class="flex items-center space-x-3 justify-center">
+                    <div class="flex flex-col items-center space-y-1">
+                        <label class="text-xs text-white">rows</label>
+                        <input 
+                            type="number" 
+                            id="gridRowsInput" 
+                            min="3" 
+                            max="12" 
+                            value="5"
+                            class="w-12 h-8 bg-black border border-white text-center text-xs text-white"
+                        >
+                    </div>
+                    <span class="text-white">×</span>
+                    <div class="flex flex-col items-center space-y-1">
+                        <label class="text-xs text-white">cols</label>
+                        <input 
+                            type="number" 
+                            id="gridColsInput" 
+                            min="3" 
+                            max="12" 
+                            value="5"
+                            class="w-12 h-8 bg-black border border-white text-center text-xs text-white"
+                        >
+                    </div>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-green-400 font-medium" id="gridSizeValue">5×5 = 25</span>
+                </div>
+            </div>
+            
+
+            <!-- Advanced Controls -->
+            <div class="flex flex-col space-y-2">
+                <h3 class="text-sm font-medium text-white">advanced_controls</h3>
+                <div class="text-xs text-gray-400 space-y-1">
+                    <div>• <span class="text-white">Click:</span> select_ball</div>
+                    <div>• <span class="text-white">Ctrl + Click:</span> multi_select</div>
+                    <div>• <span class="text-white">Shift + Click:</span> range_select</div>
+                    <div>• <span class="text-white">Ctrl + A:</span> select_all</div>
+                    <div>• <span class="text-white">Escape:</span> deselect_all</div>
+                    <div>• <span class="text-white">Space + Click:</span> quick_toggle</div>
+                    <div>• <span class="text-white">Scroll on ball:</span> resize</div>
+                    <div>• <span class="text-white">Scroll (multi):</span> group_resize</div>
+                    <div>• <span class="text-white">Scroll (connect):</span> factor</div>
+                </div>
+            </div>
+            
+            <!-- Acciones -->
+            <div class="flex flex-col space-y-2">
+                <h3 class="text-sm font-medium text-white">actions</h3>
+                <div class="flex flex-col space-y-1">
+                    <button id="downloadSVG" class="btn" style="border-color: #00ff00; color: #00ff00;">📥 DOWNLOAD SVG</button>
+                    <button id="resetAll" class="btn danger">RESET ALL</button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- SVG Container -->
+    <svg id="svg" style="display: block; background-color: #000000; width: 100vw; height: 100vh;">
+        <defs>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+    </svg>
+    
+    <script>
+        // Variables globales
+        const svg = document.getElementById('svg');
+        const svgNS = 'http://www.w3.org/2000/svg';
+        
+        let circles = [];
+        let gridCountX = 5, gridCountY = 5;
+        let baseRadius = 30;
+        let connectionFactor = 4.0;
+        let selectedCircles = [];
+        let connections = [];
+        let selectedConnections = []; // Conexiones seleccionadas para modo individual
+        let connectionFactorMode = 'global'; // 'global' | 'individual'
+        let editMode = 'select';
+        let connectingFrom = null;
+        let spacing = 120;
+        
+        class Circle {
+            constructor(x, y, radius, gridI, gridJ) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.gridI = gridI;
+                this.gridJ = gridJ;
+                this.isSelected = false;
+                this.isHovered = false;
+            }
+            
+            contains(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                return distance <= Math.max(this.radius, 15); // Mínimo 15px para selección
+            }
+            
+            draw() {
+                // Círculo principal
+                const circle = document.createElementNS(svgNS, 'circle');
+                circle.setAttribute('cx', this.x);
+                circle.setAttribute('cy', this.y);
+                circle.setAttribute('r', this.radius);
+                circle.setAttribute('fill', '#ffffff');
+                circle.setAttribute('opacity', '1.0');
+                
+                // Efecto glow opcional (comentado para mayor claridad)
+                // circle.setAttribute('filter', 'url(#glow)');
+                
+                // Añadir al SVG
+                svg.appendChild(circle);
+                
+                // Borde si está seleccionado
+                if (this.isSelected) {
+                    const selectedBorder = document.createElementNS(svgNS, 'circle');
+                    selectedBorder.setAttribute('cx', this.x);
+                    selectedBorder.setAttribute('cy', this.y);
+                    selectedBorder.setAttribute('r', this.radius + 3);
+                    selectedBorder.setAttribute('fill', 'none');
+                    selectedBorder.setAttribute('stroke', '#00ff00');
+                    selectedBorder.setAttribute('stroke-width', '2');
+                    selectedBorder.setAttribute('opacity', '1');
+                    svg.appendChild(selectedBorder);
+                }
+                
+                // Borde si está siendo hover
+                if (this.isHovered && !this.isSelected) {
+                    const hoverBorder = document.createElementNS(svgNS, 'circle');
+                    hoverBorder.setAttribute('cx', this.x);
+                    hoverBorder.setAttribute('cy', this.y);
+                    hoverBorder.setAttribute('r', this.radius + 2);
+                    hoverBorder.setAttribute('fill', 'none');
+                    hoverBorder.setAttribute('stroke', '#ffffff');
+                    hoverBorder.setAttribute('stroke-width', '1');
+                    hoverBorder.setAttribute('opacity', '0.8');
+                    svg.appendChild(hoverBorder);
+                }
+            }
+        }
+        
+        // Función para detectar click en conexiones (metaballs)
+        function getClickedConnection(mouseX, mouseY) {
+            for (let conn of connections) {
+                if (conn.from.radius > 0 && conn.to.radius > 0) {
+                    const r1 = conn.from.radius;
+                    const r2 = conn.to.radius;
+                    const d = Math.sqrt((conn.from.x - conn.to.x) ** 2 + (conn.from.y - conn.to.y) ** 2);
+                    
+                    const usedFactor = conn.connectionFactor;
+                    const condition1 = d > (r1 + r2) * usedFactor;
+                    const condition2 = d <= Math.abs(r1 - r2);
+                    
+                    // Solo revisar si la metaball existe
+                    if (!condition1 && !condition2) {
+                        // Aproximación simple: verificar si el click está en la zona de la metaball
+                        const midX = (conn.from.x + conn.to.x) / 2;
+                        const midY = (conn.from.y + conn.to.y) / 2;
+                        const avgRadius = (r1 + r2) / 2;
+                        
+                        const distanceToMid = Math.sqrt((mouseX - midX) ** 2 + (mouseY - midY) ** 2);
+                        const threshold = avgRadius * 0.7;
+                        
+                        // Si está cerca del centro de la metaball, considerarlo un click (zona ampliada)
+                        if (distanceToMid <= threshold * 1.5) { // Zona de click más amplia
+                            return conn;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+        
+        // Función para crear conexión entre dos círculos
+        function connectCircles(c1, c2, connection = null) {
+            const r1 = Math.max(0, c1.radius);
+            const r2 = Math.max(0, c2.radius);
+            const d = Math.sqrt((c1.x - c2.x) ** 2 + (c1.y - c2.y) ** 2);
+            
+            // Usar connectionFactor individual o global según el modo
+            const usedConnectionFactor = connection ? connection.connectionFactor : connectionFactor;
+            
+            console.log('🔍 Validando condiciones:');
+            console.log('  r1:', r1, 'r2:', r2);
+            console.log('  d:', d, 'threshold:', (r1 + r2) * usedConnectionFactor);
+            console.log('  usedConnectionFactor:', usedConnectionFactor, 'mode:', connectionFactorMode);
+            console.log('  Math.abs(r1 - r2):', Math.abs(r1 - r2));
+            
+            const condition1 = d > (r1 + r2) * usedConnectionFactor;
+            const condition2 = d <= Math.abs(r1 - r2);
+            const condition3 = r1 === 0;
+            const condition4 = r2 === 0;
+            
+            console.log('  Condición 1 (d > threshold):', condition1);
+            console.log('  Condición 2 (d <= |r1-r2|):', condition2);
+            console.log('  Condición 3 (r1 === 0):', condition3);
+            console.log('  Condición 4 (r2 === 0):', condition4);
+            
+            if (condition1 || condition2 || condition3 || condition4) {
+                console.log('❌ SE SALE por condición:', {
+                    distanciaMuyGrande: condition1,
+                    distanciaMuyPequeña: condition2, 
+                    radio1Cero: condition3,
+                    radio2Cero: condition4
+                });
+                return;
+            }
+            
+            console.log('✅ Todas las condiciones pasaron, procediendo al renderizado');
+            
+            // Fórmula original de metaballs del script de Adobe Illustrator
+            // Aplicar el connection_factor para mayor variabilidad en la forma
+            const connectionInfluence = Math.pow(connectionFactor / 4.0, 1.5); // Normalizar y aplicar potencia
+            const adjustedR1 = r1 * (0.7 + connectionInfluence * 0.6); // Entre 70% y 130%
+            const adjustedR2 = r2 * (0.7 + connectionInfluence * 0.6);
+            
+            const centerAngle = Math.PI / 2; // 90 grados como en el script original
+            const ot1 = Math.atan2(c2.y - c1.y, c2.x - c1.x);
+            const ot2 = ot1 + Math.PI;
+            
+            // Ecuación cuadrática para calcular r (usando radios ajustados)
+            const cos_ca = Math.cos(centerAngle);
+            const a_coef = 2 - 2 * cos_ca;
+            const b_coef = 2 * (1 - cos_ca) * (adjustedR1 + adjustedR2);
+            const c_coef = adjustedR1 * adjustedR1 + adjustedR2 * adjustedR2 - d * d - 2 * adjustedR1 * adjustedR2 * cos_ca;
+            
+            console.log('Coeficientes ecuación:', { a_coef, b_coef, c_coef });
+            
+            // Resolver ecuación cuadrática directamente
+            let quad_a = a_coef;
+            let quad_b = b_coef;
+            let quad_c = c_coef;
+            let r = null;
+            
+            if (quad_a === 0) {
+                if (quad_b !== 0) {
+                    const s = -quad_c / quad_b;
+                    r = s > 0 ? s : null;
+                }
+            } else {
+                quad_a *= 2;
+                const discriminant = quad_b * quad_b - 2 * quad_a * quad_c;
+                if (discriminant >= 0) {
+                    const rd = Math.sqrt(discriminant);
+                    if (discriminant > 0) {
+                        const s1 = (-quad_b + rd) / quad_a;
+                        const s2 = (-quad_b - rd) / quad_a;
+                        if (s1 > 0 && s2 > 0) {
+                            r = Math.min(s1, s2);
+                        } else if (s1 > 0) {
+                            r = s1;
+                        } else if (s2 > 0) {
+                            r = s2;
+                        }
+                    } else {
+                        const s = -quad_b / quad_a;
+                        r = s > 0 ? s : null;
+                    }
+                }
+            }
+            console.log('Radio calculado r:', r);
+            if (r === null) {
+                console.log('❌ No se puede resolver la ecuación cuadrática');
+                return;
+            }
+            
+            const radius_a = r1 + r;
+            const radius_b = r2 + r;
+            
+            // Cálculo de ángulos
+            const cos_t1 = (radius_a * radius_a + d * d - radius_b * radius_b) / (2 * radius_a * d);
+            const cos_t2 = (radius_b * radius_b + d * d - radius_a * radius_a) / (2 * radius_b * d);
+            
+            if (cos_t1 < -1 || cos_t1 > 1 || cos_t2 < -1 || cos_t2 > 1) {
+                console.log('❌ Valores fuera de rango para acos');
+                return;
+            }
+            
+            const t1 = Math.acos(cos_t1);
+            const t2 = Math.acos(cos_t2);
+            
+            if (isNaN(t1) || isNaN(t2)) {
+                console.log('❌ Ángulos inválidos');
+                return;
+            }
+            
+            // Longitud de handles para curvas Bezier
+            const h = (4 * Math.tan(centerAngle / 4) / 3) * r;
+            const hpi = Math.PI / 2;
+            
+            // Puntos de ancla (fórmula original)
+            const p0_anchor = [c1.x + r1 * Math.cos(ot1 + t1), c1.y + r1 * Math.sin(ot1 + t1)];
+            const p1_anchor = [c2.x + r2 * Math.cos(ot2 - t2), c2.y + r2 * Math.sin(ot2 - t2)];
+            const p2_anchor = [c2.x + r2 * Math.cos(ot2 + t2), c2.y + r2 * Math.sin(ot2 + t2)];
+            const p3_anchor = [c1.x + r1 * Math.cos(ot1 - t1), c1.y + r1 * Math.sin(ot1 - t1)];
+            
+            // Puntos de control (handles)
+            const p0_right = [p0_anchor[0] + h * Math.cos(ot1 + t1 - hpi), p0_anchor[1] + h * Math.sin(ot1 + t1 - hpi)];
+            const p1_left = [p1_anchor[0] + h * Math.cos(ot2 - t2 + hpi), p1_anchor[1] + h * Math.sin(ot2 - t2 + hpi)];
+            const p2_right = [p2_anchor[0] + h * Math.cos(ot2 + t2 - hpi), p2_anchor[1] + h * Math.sin(ot2 + t2 - hpi)];
+            const p3_left = [p3_anchor[0] + h * Math.cos(ot1 - t1 + hpi), p3_anchor[1] + h * Math.sin(ot1 - t1 + hpi)];
+            
+            console.log('Puntos calculados:', { p0_anchor, p1_anchor, p2_anchor, p3_anchor });
+            
+            // Renderizar la metaball con SVG
+            console.log('🎨 Renderizando metaball con SVG');
+            
+            // Crear path SVG para la metaball
+            const metaballPath = document.createElementNS(svgNS, 'path');
+            
+            // Construir el path data
+            const pathData = [
+                `M ${p0_anchor[0].toFixed(2)} ${p0_anchor[1].toFixed(2)}`, // Move to p0
+                `C ${p0_right[0].toFixed(2)} ${p0_right[1].toFixed(2)}`,  // Control desde p0
+                `${p1_left[0].toFixed(2)} ${p1_left[1].toFixed(2)}`,      // Control hacia p1
+                `${p1_anchor[0].toFixed(2)} ${p1_anchor[1].toFixed(2)}`,   // Destino p1
+                `L ${p2_anchor[0].toFixed(2)} ${p2_anchor[1].toFixed(2)}`, // Línea a p2
+                `C ${p2_right[0].toFixed(2)} ${p2_right[1].toFixed(2)}`,  // Control desde p2
+                `${p3_left[0].toFixed(2)} ${p3_left[1].toFixed(2)}`,      // Control hacia p3
+                `${p3_anchor[0].toFixed(2)} ${p3_anchor[1].toFixed(2)}`,   // Destino p3
+                'Z' // Cerrar path
+            ].join(' ');
+            
+            metaballPath.setAttribute('d', pathData);
+            metaballPath.setAttribute('fill', '#ffffff');
+            metaballPath.setAttribute('opacity', '1.0');
+            // metaballPath.setAttribute('filter', 'url(#glow)');
+            
+            // Agregar borde si la conexión está seleccionada
+            if (connection && connection.isSelected) {
+                metaballPath.setAttribute('stroke', '#00ff00');
+                metaballPath.setAttribute('stroke-width', '2');
+            }
+            
+            // Añadir al SVG
+            svg.appendChild(metaballPath);
+            
+            console.log('✅ Metaball renderizada con fórmula original');
+        }
+        
+        // Inicializar grid de círculos (SVG)
+        function init() {
+            const svgWidth = window.innerWidth;
+            const svgHeight = window.innerHeight;
+            svg.setAttribute('width', svgWidth);
+            svg.setAttribute('height', svgHeight);
+            
+            circles = [];
+            connections = [];
+            selectedCircles = [];
+            
+            const padding = 200;
+            const availableWidth = svgWidth - padding * 2;
+            const availableHeight = svgHeight - padding * 2;
+            
+            spacing = Math.min(availableWidth / (gridCountX - 1), availableHeight / (gridCountY - 1));
+            
+            const startX = (svgWidth - (gridCountX - 1) * spacing) / 2;
+            const startY = (svgHeight - (gridCountY - 1) * spacing) / 2;
+            
+            for (let i = 0; i < gridCountX; i++) {
+                for (let j = 0; j < gridCountY; j++) {
+                    const x = startX + i * spacing;
+                    const y = startY + j * spacing;
+                    circles.push(new Circle(x, y, baseRadius, i, j));
+                }
+            }
+            
+            updateDisplays();
+        }
+        
+        // Función principal de dibujo (SVG)
+        function draw() {
+            // Limpiar SVG
+            const elementsToRemove = svg.querySelectorAll('circle, path');
+            elementsToRemove.forEach(el => el.remove());
+            
+            // Dibujar conexiones manuales primero (para que aparezcan detrás)
+            if (connections.length > 0) {
+                console.log('Dibujando', connections.length, 'conexiones manuales en SVG');
+            }
+            connections.forEach((conn, index) => {
+                if (conn.from.radius > 0 && conn.to.radius > 0) {
+                    console.log(`Dibujando conexión SVG ${index + 1}:`, conn.from.gridI + '_' + conn.from.gridJ, '->', conn.to.gridI + '_' + conn.to.gridJ);
+                    connectCircles(conn.from, conn.to, conn); // Pasar el objeto conexión
+                }
+            });
+            
+            // Dibujar círculos encima de las conexiones
+            circles.forEach(circle => {
+                if (circle.radius > 0) {
+                    circle.draw();
+                }
+            });
+            
+            // Mostrar círculo que estamos conectando
+            if (editMode === 'connect' && connectingFrom) {
+                const connectingIndicator = document.createElementNS(svgNS, 'circle');
+                connectingIndicator.setAttribute('cx', connectingFrom.x);
+                connectingIndicator.setAttribute('cy', connectingFrom.y);
+                connectingIndicator.setAttribute('r', Math.max(connectingFrom.radius + 5, 20));
+                connectingIndicator.setAttribute('fill', 'none');
+                connectingIndicator.setAttribute('stroke', '#ffff00');
+                connectingIndicator.setAttribute('stroke-width', '3');
+                connectingIndicator.setAttribute('stroke-dasharray', '5,5');
+                connectingIndicator.setAttribute('opacity', '0.8');
+                svg.appendChild(connectingIndicator);
+            }
+        }
+        
+        // Event listeners del SVG
+        svg.addEventListener('mousemove', (event) => {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            
+            // Reset hover states
+            circles.forEach(circle => circle.isHovered = false);
+            
+            // Find hovered circle
+            const hoveredCircle = circles.find(circle => circle.contains(mouseX, mouseY));
+            if (hoveredCircle) {
+                hoveredCircle.isHovered = true;
+            }
+            
+            draw();
+        });
+        
+        svg.addEventListener('click', (event) => {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            
+            const clickedCircle = circles.find(circle => circle.contains(mouseX, mouseY));
+            const clickedConnection = !clickedCircle ? getClickedConnection(mouseX, mouseY) : null;
+            
+            // Manejar selección de conexiones en modo individual
+            if (connectionFactorMode === 'individual' && clickedConnection && !clickedCircle) {
+                if (event.ctrlKey || event.metaKey) {
+                    // Multi-selección de conexiones
+                    clickedConnection.isSelected = !clickedConnection.isSelected;
+                    if (clickedConnection.isSelected) {
+                        if (!selectedConnections.includes(clickedConnection)) {
+                            selectedConnections.push(clickedConnection);
+                        }
+                    } else {
+                        selectedConnections = selectedConnections.filter(c => c !== clickedConnection);
+                    }
+                } else {
+                    // Selección simple: limpiar todo y seleccionar solo esta conexión
+                    selectedConnections.forEach(c => c.isSelected = false);
+                    selectedConnections = [clickedConnection];
+                    clickedConnection.isSelected = true;
+                }
+                
+                // Actualizar slider al valor de la conexión seleccionada
+                if (selectedConnections.length === 1) {
+                    const newValue = selectedConnections[0].connectionFactor;
+                    document.getElementById('connectionSlider').value = newValue;
+                    document.getElementById('connectionValue').textContent = newValue.toFixed(1);
+                }
+                
+                draw();
+                return;
+            }
+            
+            if (!clickedCircle) return;
+            
+            if (editMode === 'select') {
+                // Modo selección
+                if (event.ctrlKey || event.metaKey) {
+                    // Multi-selección: toggle el estado del círculo clickeado
+                    clickedCircle.isSelected = !clickedCircle.isSelected;
+                    if (clickedCircle.isSelected) {
+                        // Añadir a la selección si no está ya
+                        if (!selectedCircles.includes(clickedCircle)) {
+                            selectedCircles.push(clickedCircle);
+                        }
+                    } else {
+                        // Remover de la selección
+                        selectedCircles = selectedCircles.filter(c => c !== clickedCircle);
+                    }
+                } else if (event.shiftKey && selectedCircles.length > 0) {
+                    // Selección por rango (Shift+Click)
+                    const firstSelected = selectedCircles[0];
+                    const startI = Math.min(firstSelected.gridI, clickedCircle.gridI);
+                    const endI = Math.max(firstSelected.gridI, clickedCircle.gridI);
+                    const startJ = Math.min(firstSelected.gridJ, clickedCircle.gridJ);
+                    const endJ = Math.max(firstSelected.gridJ, clickedCircle.gridJ);
+                    
+                    // Limpiar selección actual
+                    selectedCircles.forEach(c => c.isSelected = false);
+                    selectedCircles = [];
+                    
+                    // Seleccionar rango rectangular
+                    circles.forEach(circle => {
+                        if (circle.gridI >= startI && circle.gridI <= endI && 
+                            circle.gridJ >= startJ && circle.gridJ <= endJ) {
+                            circle.isSelected = true;
+                            selectedCircles.push(circle);
+                        }
+                    });
+                } else {
+                    // Selección simple: limpiar todo y seleccionar solo este
+                    selectedCircles.forEach(c => c.isSelected = false);
+                    selectedCircles = [clickedCircle];
+                    clickedCircle.isSelected = true;
+                }
+                
+                updateSelectedInfo();
+                
+            } else if (editMode === 'connect') {
+                // Modo conexión
+                if (!connectingFrom) {
+                    connectingFrom = clickedCircle;
+                    document.getElementById('modeStatus').textContent = 'click_target_ball';
+
+                } else if (connectingFrom !== clickedCircle) {
+                    // Verificar si ya existe la conexión
+                    const existingConnection = connections.find(conn => 
+                        (conn.from === connectingFrom && conn.to === clickedCircle) ||
+                        (conn.from === clickedCircle && conn.to === connectingFrom)
+                    );
+                    
+                    if (!existingConnection) {
+                        connections.push({ 
+                            from: connectingFrom, 
+                            to: clickedCircle,
+                            connectionFactor: connectionFactor, // Factor individual inicial
+                            isSelected: false
+                        });
+                        console.log('🔗 Conexión creada!', connectingFrom.gridI + '_' + connectingFrom.gridJ, '<->', clickedCircle.gridI + '_' + clickedCircle.gridJ, 'Total:', connections.length);
+                    }
+                    connectingFrom = null;
+                    document.getElementById('modeStatus').textContent = 'connect_balls';
+
+                    updateDisplays();
+                } else {
+                    connectingFrom = null;
+                    document.getElementById('modeStatus').textContent = 'connect_balls';
+
+                }
+            }
+            
+            draw();
+        });
+        
+        // Funciones de actualización de displays
+        function updateSelectedInfo() {
+            const ballSizeSlider = document.getElementById('ballSizeSlider');
+            
+            if (selectedCircles.length === 0) {
+                ballSizeSlider.disabled = true;
+                ballSizeSlider.value = 30;
+            } else if (selectedCircles.length === 1) {
+                ballSizeSlider.disabled = false;
+                ballSizeSlider.value = selectedCircles[0].radius;
+            } else {
+                // Múltiples seleccionadas
+                const avgSize = Math.round(selectedCircles.reduce((sum, c) => sum + c.radius, 0) / selectedCircles.length);
+                ballSizeSlider.value = avgSize;
+                ballSizeSlider.disabled = false;
+            }
+            
+            updateBallSizeDisplay();
+        }
+        
+        function updateDisplays() {
+            document.getElementById('connectionValue').textContent = connectionFactor.toFixed(1);
+            document.getElementById('gridSizeValue').textContent = `${gridCountX}×${gridCountY} = ${gridCountX * gridCountY}`;
+            
+            // Actualizar contador de conexiones con información de selección
+            let connectionsText = `${connections.length} connections`;
+            if (connectionFactorMode === 'individual' && selectedConnections.length > 0) {
+                connectionsText += ` (${selectedConnections.length} selected)`;
+            }
+            document.getElementById('connectionsCount').textContent = connectionsText;
+            
+            updateSelectedInfo();
+        }
+        
+        function updateBallSizeDisplay() {
+            const value = document.getElementById('ballSizeSlider').value;
+            document.getElementById('ballSizeValue').textContent = value;
+        }
+        
+        // Event Listeners para controles
+        document.getElementById('selectMode').addEventListener('click', () => {
+            editMode = 'select';
+            connectingFrom = null;
+            document.getElementById('selectMode').classList.add('active');
+            document.getElementById('connectMode').classList.remove('active');
+            document.getElementById('modeStatus').textContent = 'select_balls';
+
+            draw();
+        });
+        
+        document.getElementById('connectMode').addEventListener('click', () => {
+            editMode = 'connect';
+            connectingFrom = null;
+            document.getElementById('connectMode').classList.add('active');
+            document.getElementById('selectMode').classList.remove('active');
+            document.getElementById('modeStatus').textContent = 'connect_balls';
+            draw();
+        });
+        
+        // Event listeners para Connection Factor Mode Toggle
+        document.getElementById('globalMode').addEventListener('click', () => {
+            connectionFactorMode = 'global';
+            selectedConnections = []; // Limpiar selecciones
+            connections.forEach(conn => conn.isSelected = false);
+            document.getElementById('globalMode').classList.add('active');
+            document.getElementById('individualMode').classList.remove('active');
+            document.getElementById('connectionModeStatus').textContent = 'affects_all_connections';
+            draw();
+        });
+        
+        document.getElementById('individualMode').addEventListener('click', () => {
+            connectionFactorMode = 'individual';
+            document.getElementById('individualMode').classList.add('active');
+            document.getElementById('globalMode').classList.remove('active');
+            document.getElementById('connectionModeStatus').textContent = 'click_connections_to_select';
+            draw();
+        });
+        
+        document.getElementById('ballSizeSlider').addEventListener('input', (event) => {
+            const newSize = parseInt(event.target.value);
+            selectedCircles.forEach(circle => {
+                circle.radius = newSize;
+            });
+            updateBallSizeDisplay();
+            draw();
+        });
+        
+        document.getElementById('connectionSlider').addEventListener('input', (event) => {
+            const newFactor = parseFloat(event.target.value);
+            
+            if (connectionFactorMode === 'global') {
+                // Modo global: actualizar factor global y todas las conexiones
+                connectionFactor = newFactor;
+                connections.forEach(conn => {
+                    conn.connectionFactor = newFactor;
+                });
+            } else {
+                // Modo individual: actualizar solo conexiones seleccionadas
+                if (selectedConnections.length > 0) {
+                    selectedConnections.forEach(conn => {
+                        conn.connectionFactor = newFactor;
+                    });
+                } else {
+                    // Si no hay conexiones seleccionadas, actualizar el global para nuevas conexiones
+                    connectionFactor = newFactor;
+                }
+            }
+            
+            updateDisplays();
+            draw();
+        });
+        
+        document.getElementById('clearConnections').addEventListener('click', () => {
+            connections = [];
+            updateDisplays();
+            draw();
+        });
+        
+        document.getElementById('resetAll').addEventListener('click', () => {
+            circles.forEach(circle => {
+                circle.radius = baseRadius;
+                circle.isSelected = false;
+            });
+            selectedCircles = [];
+            connections = [];
+            connectingFrom = null;
+            updateDisplays();
+            draw();
+        });
+        
+        // Event listeners para grid size
+        ['gridRowsInput', 'gridColsInput'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (event) => {
+                const newValue = parseInt(event.target.value);
+                if (newValue >= 3 && newValue <= 12) {
+                    if (id === 'gridRowsInput') gridCountY = newValue;
+                    else gridCountX = newValue;
+                    init();
+                }
+            });
+        });
+        
+        // === CONTROLES AVANZADOS DE MOUSE ===
+        let spacePressed = false;
+        let ctrlPressed = false;
+        
+        // Detectar teclas
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                spacePressed = true;
+                event.preventDefault();
+            }
+            if (event.ctrlKey || event.metaKey) {
+                ctrlPressed = true;
+                
+                // Ctrl+A / Cmd+A = Select All
+                if (event.code === 'KeyA' && editMode === 'select') {
+                    event.preventDefault();
+                    selectedCircles.forEach(c => c.isSelected = false);
+                    selectedCircles = [...circles];
+                    circles.forEach(circle => circle.isSelected = true);
+                    updateSelectedInfo();
+                    draw();
+                }
+            }
+            
+            // Escape = Deselect All
+            if (event.code === 'Escape') {
+                selectedCircles.forEach(c => c.isSelected = false);
+                selectedCircles = [];
+                connectingFrom = null;
+                updateSelectedInfo();
+                draw();
+            }
+        });
+        
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'Space') {
+                spacePressed = false;
+                event.preventDefault();
+            }
+            if (!event.ctrlKey && !event.metaKey) {
+                ctrlPressed = false;
+            }
+        });
+        
+        // Scroll para control de valores
+        svg.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            
+            const rect = svg.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            const hoveredCircle = circles.find(circle => circle.contains(mouseX, mouseY));
+            
+            if (hoveredCircle) {
+                const delta = -event.deltaY / 100; // Normalizar scroll
+                
+                if (editMode === 'select') {
+                    // En modo select: scroll ajusta tamaño de la bola
+                    if (spacePressed || hoveredCircle.isSelected) {
+                        
+                        if (selectedCircles.length > 1 && hoveredCircle.isSelected) {
+                            // Si hay múltiples bolas seleccionadas y hacemos scroll sobre una de ellas,
+                            // cambiar el tamaño de TODAS las seleccionadas
+                            const deltaSize = delta * 3;
+                            selectedCircles.forEach(circle => {
+                                const newRadius = Math.max(0, Math.min(100, circle.radius + deltaSize));
+                                circle.radius = newRadius;
+                            });
+                            
+                            // Actualizar slider con el valor de la bola sobre la que hicimos hover
+                            document.getElementById('ballSizeSlider').value = hoveredCircle.radius;
+                            updateBallSizeDisplay();
+                            
+                        } else {
+                            // Comportamiento normal para una sola bola
+                            const newRadius = Math.max(0, Math.min(100, hoveredCircle.radius + delta * 3));
+                            hoveredCircle.radius = newRadius;
+                            
+                            // Actualizar slider si está seleccionada
+                            if (hoveredCircle.isSelected) {
+                                document.getElementById('ballSizeSlider').value = newRadius;
+                                updateBallSizeDisplay();
+                            }
+                        }
+                        draw();
+                    }
+                } else if (editMode === 'connect') {
+                    // En modo connect: scroll ajusta connection factor
+                    const newFactor = Math.max(0.5, Math.min(5.0, connectionFactor + delta * 0.1));
+                    connectionFactor = newFactor;
+                    document.getElementById('connectionSlider').value = connectionFactor;
+                    updateDisplays();
+                    draw();
+                }
+            }
+        });
+        
+        // Click mejorado con teclas modificadoras
+        svg.addEventListener('click', (event) => {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            const clickedCircle = circles.find(circle => circle.contains(mouseX, mouseY));
+            
+            if (!clickedCircle) return;
+            
+            // Space + Click = Selección rápida (sin cambiar modo)
+            if (spacePressed) {
+                clickedCircle.isSelected = !clickedCircle.isSelected;
+                if (clickedCircle.isSelected) {
+                    if (!selectedCircles.includes(clickedCircle)) {
+                        selectedCircles.push(clickedCircle);
+                    }
+                } else {
+                    selectedCircles = selectedCircles.filter(c => c !== clickedCircle);
+                }
+                updateSelectedInfo();
+                draw();
+                return;
+            }
+            
+            // Ctrl/Cmd + Click en modo connect = Conexión rápida
+            if (ctrlPressed && editMode === 'select') {
+                // Cambiar temporalmente a modo connect
+                if (!connectingFrom) {
+                    connectingFrom = clickedCircle;
+                    document.getElementById('modeStatus').textContent = 'quick_connect_mode';
+                } else if (connectingFrom !== clickedCircle) {
+                    const existingConnection = connections.find(conn => 
+                        (conn.from === connectingFrom && conn.to === clickedCircle) ||
+                        (conn.from === clickedCircle && conn.to === connectingFrom)
+                    );
+                    
+                    if (!existingConnection) {
+                        connections.push({ 
+                            from: connectingFrom, 
+                            to: clickedCircle,
+                            connectionFactor: connectionFactor,
+                            isSelected: false
+                        });
+                    }
+                    connectingFrom = null;
+                    document.getElementById('modeStatus').textContent = 'select_balls';
+                    updateDisplays();
+                } else {
+                    connectingFrom = null;
+                    document.getElementById('modeStatus').textContent = 'select_balls';
+                }
+                draw();
+                return;
+            }
+            
+            // El resto del código de click normal continuará después
+        }, true); // useCapture = true para capturar antes que el evento normal
+        
+        // Función para descargar SVG
+        async function downloadSVG() {
+            try {
+                // Crear una copia del SVG para descarga
+                const svgClone = svg.cloneNode(true);
+                
+                // Asegurar namespaces y atributos correctos
+                svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                svgClone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+                svgClone.setAttribute('version', '1.1');
+                
+                // Serializar el SVG
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const svgWithXML = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgData;
+                
+                // Generar nombre de archivo
+                const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
+                const filename = `metaballs-svg-editor-${gridCountX}x${gridCountY}-${connections.length}conn-${timestamp}.svg`;
+                
+                // Descarga usando File System Access API si está disponible
+                try {
+                    if ('showSaveFilePicker' in window) {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: filename,
+                            types: [{
+                                description: 'SVG files',
+                                accept: { 'image/svg+xml': ['.svg'] }
+                            }]
+                        });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(svgWithXML);
+                        await writable.close();
+                        console.log('✅ SVG descargado via File System API:', filename);
+                    } else {
+                        // Descarga tradicional
+                        const blob = new Blob([svgWithXML], { type: 'image/svg+xml;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = filename;
+                        link.style.display = 'none';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        console.log('✅ SVG descargado via método tradicional:', filename);
+                    }
+                } catch (downloadError) {
+                    // Fallback: abrir en nueva ventana
+                    const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgWithXML);
+                    window.open(dataUrl, '_blank');
+                    console.log('⚠️ SVG abierto en nueva ventana como fallback');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error generando SVG:', error);
+                alert('Error generando SVG. Revisa la consola para más detalles.');
+            }
+        }
+        
+        // Event listener para descarga SVG
+        document.getElementById('downloadSVG').addEventListener('click', downloadSVG);
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            init();
+        });
+        
+        // Inicializar
+        init();
+        draw();
+        
+    </script>
+</body>
+</html>
