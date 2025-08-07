@@ -144,6 +144,21 @@
             justify-content: center;
             font-weight: bold;
         }
+        input[type="number"], input[type="number"]:not(:disabled):not([readonly]) {
+    color: #fff !important;
+    background: #000 !important;
+    caret-color: #fff !important;
+    border-color: #fff !important;
+    text-shadow: 0 0 0 #fff;
+}
+        input[type="number"]::placeholder {
+            color: #aaa !important;
+            opacity: 1;
+        }
+        input[type="number"]:-webkit-autofill {
+            -webkit-text-fill-color: #fff !important;
+            box-shadow: 0 0 0 1000px #000 inset !important;
+        }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -174,15 +189,15 @@
     </div>
     
     <!-- Panel lateral flotante contextual -->
-    <div class="fixed top-4 left-4 z-10 w-80 max-w-full flex flex-col gap-5 p-4 bg-black/80 rounded-xl border border-white shadow-xl" aria-label="Controles de edición metaballs">
+    <div class="fixed top-4 left-4 z-10 w-80 max-w-full flex flex-col gap-5 p-4 bg-black/80 rounded-xl shadow-xl" aria-label="Controles de edición metaballs">
         <!-- Modo de edición -->
         <section class="flex flex-col gap-2 border-b border-white/20 pb-3">
             <h2 class="text-xs font-bold uppercase tracking-wide text-green-400">Modo de edición</h2>
             <div class="flex gap-2">
-                <button id="selectMode" class="btn w-1/2 uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-green-400" aria-label="Modo seleccionar">SELECT</button>
+                <button id="selectMode" class="btn w-1/2 uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-green-400 active" aria-label="Modo seleccionar">SELECT</button>
                 <button id="connectMode" class="btn w-1/2 uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-green-400" aria-label="Modo conectar">CONNECT</button>
             </div>
-            <span id="modeStatus" class="text-xs text-gray-400"></span>
+            
         </section>
 
         <!-- Configuración de bolas (solo en SELECT) -->
@@ -191,7 +206,7 @@
             <div class="flex items-center gap-3">
                 <span class="text-xs">Tamaño</span>
                 <input id="ballSizeSlider" type="range" min="0" max="100" step="1" class="flex-1" />
-                <span id="ballSizeValue" class="text-xs text-green-400"></span>
+                <input id="ballSizeInput" type="number" min="0" max="100" step="1" class="w-16 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-green-400" aria-label="Tamaño de bola" />
             </div>
         </section>
 
@@ -204,11 +219,11 @@
             </div>
             <div id="connectionSliderBlock" class="flex items-center gap-3" hidden>
                 <span class="text-xs">Factor</span>
-                <input id="connectionSlider" type="range" min="0.5" max="5.0" step="0.1" class="flex-1" />
-                <span id="connectionValue" class="text-xs text-green-400"></span>
+                <input id="connectionSlider" type="range" min="0.1" max="8.0" step="0.05" class="flex-1" />
+                <input id="connectionInput" type="number" min="0.1" max="8.0" step="0.05" class="w-16 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Factor de conexión" />
             </div>
             <span id="connectionsCount" class="text-xs text-green-400"></span>
-            <span id="connectionModeStatus" class="text-xs text-gray-400"></span>
+            
             <button id="clearConnections" class="btn danger mt-2 uppercase font-semibold text-xs px-3 py-1 rounded border border-red-500 transition focus:outline-none focus:ring-2 focus:ring-red-400">CLEAR ALL</button>
         </section>
 
@@ -322,7 +337,7 @@
                     selectedBorder.setAttribute('r', this.radius + 3);
                     selectedBorder.setAttribute('fill', 'none');
                     selectedBorder.setAttribute('stroke', '#00ff00');
-                    selectedBorder.setAttribute('stroke-width', '2');
+                    selectedBorder.setAttribute('stroke-width', '1');
                     selectedBorder.setAttribute('opacity', '1');
                     svg.appendChild(selectedBorder);
                 }
@@ -413,7 +428,7 @@
             
             // Fórmula original de metaballs del script de Adobe Illustrator
             // Aplicar el connection_factor para mayor variabilidad en la forma
-            const connectionInfluence = Math.pow(connectionFactor / 4.0, 1.5); // Normalizar y aplicar potencia
+            const connectionInfluence = Math.pow(usedConnectionFactor / 8.0, 0.7); // Más sensible y progresivo
             const adjustedR1 = r1 * (0.7 + connectionInfluence * 0.6); // Entre 70% y 130%
             const adjustedR2 = r2 * (0.7 + connectionInfluence * 0.6);
             
@@ -532,7 +547,7 @@
             // Agregar borde si la conexión está seleccionada
             if (connection && connection.isSelected) {
                 metaballPath.setAttribute('stroke', '#00ff00');
-                metaballPath.setAttribute('stroke-width', '2');
+                metaballPath.setAttribute('stroke-width', '1');
             }
             
             // Añadir al SVG
@@ -543,6 +558,12 @@
         
         // Inicializar grid de círculos (SVG)
         function init() {
+    // Estado base de modo conexiones: Global
+    connectionFactorMode = 'global';
+    selectedConnections = [];
+    connections.forEach(conn => conn.isSelected = false);
+    document.getElementById('globalMode').classList.add('active');
+    document.getElementById('individualMode').classList.remove('active');
             const svgWidth = window.innerWidth;
             const svgHeight = window.innerHeight;
             svg.setAttribute('width', svgWidth);
@@ -550,6 +571,7 @@
             
             circles = [];
             connections = [];
+console.log('Conexiones tras init:', connections);
             selectedCircles = [];
             
             const padding = 200;
@@ -564,7 +586,9 @@
             // Si el radio actual es mayor al nuevo máximo, ajusta
             if (baseRadius > maxRadius) baseRadius = maxRadius;
             // Actualiza display
-            document.getElementById('ballSizeValue').textContent = baseRadius;
+            
+if (ballSizeSlider) ballSizeSlider.value = baseRadius;
+if (ballSizeInput) ballSizeInput.value = baseRadius;
             
             const startX = (svgWidth - (gridCountX - 1) * spacing) / 2;
             const startY = (svgHeight - (gridCountY - 1) * spacing) / 2;
@@ -612,7 +636,7 @@
                 connectingIndicator.setAttribute('r', Math.max(connectingFrom.radius + 5, 20));
                 connectingIndicator.setAttribute('fill', 'none');
                 connectingIndicator.setAttribute('stroke', '#ffff00');
-                connectingIndicator.setAttribute('stroke-width', '3');
+                connectingIndicator.setAttribute('stroke-width', '1');
                 connectingIndicator.setAttribute('stroke-dasharray', '5,5');
                 connectingIndicator.setAttribute('opacity', '0.8');
                 svg.appendChild(connectingIndicator);
@@ -721,18 +745,15 @@
                 updateSelectedInfo();
                 
             } else if (editMode === 'connect') {
-                // Modo conexión
+                // Modo conexión: solo aquí se puede crear una conexión
                 if (!connectingFrom) {
                     connectingFrom = clickedCircle;
-                    document.getElementById('modeStatus').textContent = 'click_target_ball';
-
                 } else if (connectingFrom !== clickedCircle) {
                     // Verificar si ya existe la conexión
                     const existingConnection = connections.find(conn => 
                         (conn.from === connectingFrom && conn.to === clickedCircle) ||
                         (conn.from === clickedCircle && conn.to === connectingFrom)
                     );
-                    
                     if (!existingConnection) {
                         connections.push({ 
                             from: connectingFrom, 
@@ -743,13 +764,9 @@
                         console.log('🔗 Conexión creada!', connectingFrom.gridI + '_' + connectingFrom.gridJ, '<->', clickedCircle.gridI + '_' + clickedCircle.gridJ, 'Total:', connections.length);
                     }
                     connectingFrom = null;
-                    document.getElementById('modeStatus').textContent = 'connect_balls';
-
                     updateDisplays();
                 } else {
                     connectingFrom = null;
-                    document.getElementById('modeStatus').textContent = 'connect_balls';
-
                 }
             }
             
@@ -762,22 +779,28 @@
             
             if (selectedCircles.length === 0) {
                 ballSizeSlider.disabled = true;
-                ballSizeSlider.value = 30;
+                ballSizeInput.disabled = true;
+                ballSizeSlider.value = baseRadius;
+                ballSizeInput.value = baseRadius;
             } else if (selectedCircles.length === 1) {
                 ballSizeSlider.disabled = false;
+                ballSizeInput.disabled = false;
                 ballSizeSlider.value = selectedCircles[0].radius;
+                ballSizeInput.value = selectedCircles[0].radius;
             } else {
                 // Múltiples seleccionadas
                 const avgSize = Math.round(selectedCircles.reduce((sum, c) => sum + c.radius, 0) / selectedCircles.length);
                 ballSizeSlider.value = avgSize;
+                ballSizeInput.value = avgSize;
                 ballSizeSlider.disabled = false;
+                ballSizeInput.disabled = false;
             }
             
             updateBallSizeDisplay();
         }
         
         function updateDisplays() {
-            document.getElementById('connectionValue').textContent = connectionFactor.toFixed(1);
+            if (connectionInput) connectionInput.value = connectionFactor;
             document.getElementById('gridSizeValue').textContent = `${gridCountX}×${gridCountY} = ${gridCountX * gridCountY}`;
             
             // Actualizar contador de conexiones con información de selección
@@ -791,9 +814,9 @@
         }
         
         function updateBallSizeDisplay() {
-            const value = document.getElementById('ballSizeSlider').value;
-            document.getElementById('ballSizeValue').textContent = value;
-        }
+    const value = ballSizeSlider.value;
+    ballSizeInput.value = value;
+}
         
         // Event Listeners para controles
         document.getElementById('selectMode').addEventListener('click', () => {
@@ -834,42 +857,91 @@
             draw();
         });
         
-        document.getElementById('ballSizeSlider').addEventListener('input', (event) => {
-            const newSize = parseInt(event.target.value);
-            selectedCircles.forEach(circle => {
-                circle.radius = newSize;
-            });
-            updateBallSizeDisplay();
-            draw();
-        });
+        // --- Referencias globales a controles ---
+const ballSizeSlider = document.getElementById('ballSizeSlider');
+const ballSizeInput = document.getElementById('ballSizeInput');
+const connectionSlider = document.getElementById('connectionSlider');
+const connectionInput = document.getElementById('connectionInput');
+
+// Sincronización robusta: solo enteros
+ballSizeSlider.addEventListener('input', (event) => {
+    let newSize = Math.round(Number(event.target.value));
+    ballSizeInput.value = newSize;
+    selectedCircles.forEach(circle => {
+        circle.radius = newSize;
+    });
+    updateBallSizeDisplay();
+    draw();
+});
+
+ballSizeInput.addEventListener('input', (event) => {
+    let newSize = Math.round(Number(event.target.value));
+    const min = parseInt(ballSizeSlider.min);
+    const max = parseInt(ballSizeSlider.max);
+    if (isNaN(newSize)) newSize = min;
+    newSize = Math.max(min, Math.min(max, newSize));
+    ballSizeInput.value = newSize;
+    ballSizeSlider.value = newSize;
+    selectedCircles.forEach(circle => {
+        circle.radius = newSize;
+    });
+    updateBallSizeDisplay();
+    draw();
+});
         
-        document.getElementById('connectionSlider').addEventListener('input', (event) => {
-            const newFactor = parseFloat(event.target.value);
-            
-            if (connectionFactorMode === 'global') {
-                // Modo global: actualizar factor global y todas las conexiones
-                connectionFactor = newFactor;
-                connections.forEach(conn => {
-                    conn.connectionFactor = newFactor;
-                });
-            } else {
-                // Modo individual: actualizar solo conexiones seleccionadas
-                if (selectedConnections.length > 0) {
-                    selectedConnections.forEach(conn => {
-                        conn.connectionFactor = newFactor;
-                    });
-                } else {
-                    // Si no hay conexiones seleccionadas, actualizar el global para nuevas conexiones
-                    connectionFactor = newFactor;
-                }
-            }
-            
-            updateDisplays();
-            draw();
+        
+
+// Permitir decimales, sincronización precisa
+connectionSlider.addEventListener('input', (event) => {
+    const newFactor = parseFloat(event.target.value);
+    connectionInput.value = newFactor;
+    if (connectionFactorMode === 'global') {
+        connectionFactor = newFactor;
+        connections.forEach(conn => {
+            conn.connectionFactor = newFactor;
         });
+    } else {
+        if (selectedConnections.length > 0) {
+            selectedConnections.forEach(conn => {
+                conn.connectionFactor = newFactor;
+            });
+        } else {
+            connectionFactor = newFactor;
+        }
+    }
+    updateDisplays();
+    draw();
+});
+
+connectionInput.addEventListener('input', (event) => {
+    let newFactor = parseFloat(event.target.value);
+    const min = parseFloat(connectionSlider.min);
+    const max = parseFloat(connectionSlider.max);
+    if (isNaN(newFactor)) newFactor = min;
+    newFactor = Math.max(min, Math.min(max, newFactor));
+    connectionInput.value = newFactor;
+    connectionSlider.value = newFactor;
+    if (connectionFactorMode === 'global') {
+        connectionFactor = newFactor;
+        connections.forEach(conn => {
+            conn.connectionFactor = newFactor;
+        });
+    } else {
+        if (selectedConnections.length > 0) {
+            selectedConnections.forEach(conn => {
+                conn.connectionFactor = newFactor;
+            });
+        } else {
+            connectionFactor = newFactor;
+        }
+    }
+    updateDisplays();
+    draw();
+});
         
         document.getElementById('clearConnections').addEventListener('click', () => {
             connections = [];
+console.log('Conexiones tras reset:', connections);
             updateDisplays();
             draw();
         });
