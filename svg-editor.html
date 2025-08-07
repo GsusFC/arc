@@ -173,149 +173,84 @@
         </div>
     </div>
     
-    <!-- Controles Flotantes -->
-    <div class="fixed top-4 left-4 z-10 floating-controls" style="font-family: 'JetBrains Mono', monospace;">
-        <div class="flex flex-col space-y-4">
-            
-            <!-- Modo de Edición -->
-            <div class="flex flex-col space-y-2">
-                <h3 class="text-sm font-medium text-white">edit_mode</h3>
-                <div class="flex space-x-2">
-                    <button id="selectMode" class="btn active">SELECT</button>
-                    <button id="connectMode" class="btn">CONNECT</button>
-                </div>
-                <div class="text-center">
-                    <span class="text-xs text-green-400" id="modeStatus">select_balls</span>
-                </div>
+    <!-- Panel lateral flotante contextual -->
+    <div class="fixed top-4 left-4 z-10 w-80 max-w-full flex flex-col gap-5 p-4 bg-black/80 rounded-xl border border-white shadow-xl" aria-label="Controles de edición metaballs">
+        <!-- Modo de edición -->
+        <section class="flex flex-col gap-2 border-b border-white/20 pb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wide text-green-400">Modo de edición</h2>
+            <div class="flex gap-2">
+                <button id="selectMode" class="btn w-1/2 uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-green-400" aria-label="Modo seleccionar">SELECT</button>
+                <button id="connectMode" class="btn w-1/2 uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-green-400" aria-label="Modo conectar">CONNECT</button>
+            </div>
+            <span id="modeStatus" class="text-xs text-gray-400"></span>
+        </section>
 
+        <!-- Configuración de bolas (solo en SELECT) -->
+        <section id="ballControls" class="flex flex-col gap-2 border-b border-white/20 pb-3" hidden>
+            <h2 class="text-xs font-bold uppercase tracking-wide text-blue-400">Bola seleccionada</h2>
+            <div class="flex items-center gap-3">
+                <span class="text-xs">Tamaño</span>
+                <input id="ballSizeSlider" type="range" min="0" max="100" step="1" class="flex-1" />
+                <span id="ballSizeValue" class="text-xs text-green-400"></span>
             </div>
-            
-            <!-- Control de Tamaño de Bola Seleccionada -->
-            <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-white">ball_size</h3>
-                <div class="flex items-center space-x-3">
-                    <span class="text-xs text-white">0</span>
-                    <input 
-                        type="range" 
-                        id="ballSizeSlider" 
-                        min="0" 
-                        max="100" 
-                        step="1" 
-                        value="30"
-                        class="flex-1 h-2 appearance-none cursor-pointer slider"
-                        disabled
-                    >
-                    <span class="text-xs text-white">100</span>
-                </div>
-                <div class="text-center">
-                    <span class="text-xs text-green-400 font-medium" id="ballSizeValue">30</span>
-                </div>
+        </section>
 
+        <!-- Configuración de conexiones (solo en CONNECT) -->
+        <section id="connectionControls" class="flex flex-col gap-2 border-b border-white/20 pb-3" hidden>
+            <h2 class="text-xs font-bold uppercase tracking-wide text-pink-400">Conexiones</h2>
+            <div class="flex gap-2 justify-between">
+                <button id="globalMode" class="btn uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-pink-400">GLOBAL</button>
+                <button id="individualMode" class="btn uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-pink-400">INDIVIDUAL</button>
             </div>
-            
-            <!-- Factor de Conexión Global -->
-            <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-white">connection_factor</h3>
-                <div class="flex items-center space-x-3">
-                    <span class="text-xs text-white">0.5</span>
-                    <input 
-                        type="range" 
-                        id="connectionSlider" 
-                        min="0.5" 
-                        max="5.0" 
-                        step="0.1" 
-                        value="4.0"
-                        class="flex-1 h-2 appearance-none cursor-pointer slider"
-                    >
-                    <span class="text-xs text-white">5.0</span>
-                </div>
-                <div class="text-center">
-                    <span class="text-xs text-green-400 font-medium" id="connectionValue">1.0</span>
-                </div>
-                
-                <!-- Mode Toggle -->
-                <div class="flex justify-center space-x-2">
-                    <button id="globalMode" class="btn active text-xs px-2 py-1">GLOBAL</button>
-                    <button id="individualMode" class="btn text-xs px-2 py-1">INDIVIDUAL</button>
-                </div>
-                <div class="text-center">
-                    <span class="text-xs text-gray-400" id="connectionModeStatus">affects_all_connections</span>
-                </div>
+            <div id="connectionSliderBlock" class="flex items-center gap-3" hidden>
+                <span class="text-xs">Factor</span>
+                <input id="connectionSlider" type="range" min="0.5" max="5.0" step="0.1" class="flex-1" />
+                <span id="connectionValue" class="text-xs text-green-400"></span>
             </div>
-            
-            <!-- Conexiones -->
-            <div class="flex flex-col space-y-2">
-                <h3 class="text-sm font-medium text-white">connections</h3>
-                <div class="flex space-x-2">
-                    <button id="clearConnections" class="btn danger">CLEAR ALL</button>
-                </div>
-                <div class="text-center">
-                    <span class="text-xs text-green-400" id="connectionsCount">0 connections</span>
-                </div>
-            </div>
-            
-            <!-- Tamaño de Grid -->
-            <div class="flex flex-col space-y-3">
-                <h3 class="text-sm font-medium text-white">grid_size</h3>
-                <div class="flex items-center space-x-3 justify-center">
-                    <div class="flex flex-col items-center space-y-1">
-                        <label class="text-xs text-white">rows</label>
-                        <input 
-                            type="number" 
-                            id="gridRowsInput" 
-                            min="3" 
-                            max="12" 
-                            value="5"
-                            class="w-12 h-8 bg-black border border-white text-center text-xs text-white"
-                        >
-                    </div>
-                    <span class="text-white">×</span>
-                    <div class="flex flex-col items-center space-y-1">
-                        <label class="text-xs text-white">cols</label>
-                        <input 
-                            type="number" 
-                            id="gridColsInput" 
-                            min="3" 
-                            max="12" 
-                            value="5"
-                            class="w-12 h-8 bg-black border border-white text-center text-xs text-white"
-                        >
-                    </div>
-                </div>
-                <div class="text-center">
-                    <span class="text-xs text-green-400 font-medium" id="gridSizeValue">5×5 = 25</span>
-                </div>
-            </div>
-            
+            <span id="connectionsCount" class="text-xs text-green-400"></span>
+            <span id="connectionModeStatus" class="text-xs text-gray-400"></span>
+            <button id="clearConnections" class="btn danger mt-2 uppercase font-semibold text-xs px-3 py-1 rounded border border-red-500 transition focus:outline-none focus:ring-2 focus:ring-red-400">CLEAR ALL</button>
+        </section>
 
-            <!-- Advanced Controls -->
-            <div class="flex flex-col space-y-2">
-                <h3 class="text-sm font-medium text-white">advanced_controls</h3>
-                <div class="text-xs text-gray-400 space-y-1">
-                    <div>• <span class="text-white">Click:</span> select_ball</div>
-                    <div>• <span class="text-white">Ctrl + Click:</span> multi_select</div>
-                    <div>• <span class="text-white">Shift + Click:</span> range_select</div>
-                    <div>• <span class="text-white">Ctrl + A:</span> select_all</div>
-                    <div>• <span class="text-white">Escape:</span> deselect_all</div>
-                    <div>• <span class="text-white">Space + Click:</span> quick_toggle</div>
-                    <div>• <span class="text-white">Scroll on ball:</span> resize</div>
-                    <div>• <span class="text-white">Scroll (multi):</span> group_resize</div>
-                    <div>• <span class="text-white">Scroll (connect):</span> factor</div>
-                </div>
+        <!-- Configuración de grid (siempre visible) -->
+        <section class="flex flex-col gap-2 border-b border-white/20 pb-3">
+            <h2 class="text-xs font-bold uppercase tracking-wide text-yellow-400">Grid</h2>
+            <div class="flex items-center gap-2">
+                <label class="text-xs">Filas</label>
+                <input id="gridRowsInput" type="number" min="3" max="12" value="5" class="w-12 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Filas del grid" />
+                <span class="text-xs">×</span>
+                <label class="text-xs">Cols</label>
+                <input id="gridColsInput" type="number" min="3" max="12" value="5" class="w-12 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Columnas del grid" />
+                <span id="gridSizeValue" class="text-xs text-green-400 ml-2"></span>
             </div>
-            
-            <!-- Acciones -->
-            <div class="flex flex-col space-y-2">
-                <h3 class="text-sm font-medium text-white">actions</h3>
-                <div class="flex flex-col space-y-1">
-                    <button id="downloadSVG" class="btn" style="border-color: #00ff00; color: #00ff00;">📥 DOWNLOAD SVG</button>
-                    <button id="resetAll" class="btn danger">RESET ALL</button>
-                </div>
+        </section>
+
+        <!-- Acciones -->
+        <section class="flex flex-col gap-2">
+            <div class="flex gap-2">
+                <button id="downloadSVG" class="btn flex-1 border-green-400 text-green-400 uppercase font-semibold text-xs px-3 py-1 rounded border transition focus:outline-none focus:ring-2 focus:ring-green-400">📥 EXPORTAR SVG</button>
+                <button id="resetAll" class="btn danger flex-1 uppercase font-semibold text-xs px-3 py-1 rounded border border-red-500 transition focus:outline-none focus:ring-2 focus:ring-red-400">RESET</button>
             </div>
-            
+            <button id="showHelp" class="btn text-xs mt-1 uppercase font-semibold px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Mostrar ayuda y atajos">❓ AYUDA / ATAJOS</button>
+        </section>
+    </div>
+
+    <!-- Modal de ayuda -->
+    <div id="helpModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50" style="display:none;" role="dialog" aria-modal="true" aria-label="Ayuda y atajos">
+        <div class="bg-black border border-white rounded-lg p-6 max-w-md w-full shadow-2xl relative">
+            <button id="closeHelp" class="absolute top-2 right-2 text-white text-lg" aria-label="Cerrar ayuda">&times;</button>
+            <h2 class="text-lg font-bold mb-4 text-green-400">Atajos y controles avanzados</h2>
+            <ul class="text-xs space-y-1 text-gray-200">
+                <li><b>Click</b>: seleccionar bola/conexión</li>
+                <li><b>Ctrl + Click</b>: multi-selección</li>
+                <li><b>Esc</b>: deseleccionar todo / cerrar modal</li>
+                <li><b>Ctrl + A</b>: seleccionar todo</li>
+                <li><b>Space + Click</b>: alternar selección rápida</li>
+                <li><b>Scroll</b>: cambiar tamaño/factor según contexto</li>
+            </ul>
         </div>
     </div>
-    
+
     <!-- SVG Container -->
     <svg id="svg" style="display: block; background-color: #000000; width: 100vw; height: 100vh;">
         <defs>
@@ -622,6 +557,14 @@
             const availableHeight = svgHeight - padding * 2;
             
             spacing = Math.min(availableWidth / (gridCountX - 1), availableHeight / (gridCountY - 1));
+            // Forzar radio máximo permitido según spacing
+            const maxRadius = Math.floor(spacing / 2);
+            const ballSizeSlider = document.getElementById('ballSizeSlider');
+            ballSizeSlider.max = maxRadius;
+            // Si el radio actual es mayor al nuevo máximo, ajusta
+            if (baseRadius > maxRadius) baseRadius = maxRadius;
+            // Actualiza display
+            document.getElementById('ballSizeValue').textContent = baseRadius;
             
             const startX = (svgWidth - (gridCountX - 1) * spacing) / 2;
             const startY = (svgHeight - (gridCountY - 1) * spacing) / 2;
@@ -1181,7 +1124,71 @@
         // Inicializar
         init();
         draw();
-        
+
+        // --- UI CONTEXTUAL Y MODAL DE AYUDA ---
+        function updateUIContext() {
+          // Paneles
+          const ballControls = document.getElementById('ballControls');
+          const connectionControls = document.getElementById('connectionControls');
+          const connectionSliderBlock = document.getElementById('connectionSliderBlock');
+
+          // Mostrar controles según modo
+          if (editMode === 'select') {
+            ballControls.hidden = false;
+            connectionControls.hidden = true;
+          } else if (editMode === 'connect') {
+            ballControls.hidden = true;
+            connectionControls.hidden = false;
+            // Mostrar slider solo si corresponde
+            const showSlider =
+              connectionFactorMode === 'global' ||
+              (connectionFactorMode === 'individual' && selectedConnections.length > 0);
+            connectionSliderBlock.hidden = !showSlider;
+          }
+        }
+
+        // Modal de ayuda accesible
+        const helpModal = document.getElementById('helpModal');
+        const showHelpBtn = document.getElementById('showHelp');
+        const closeHelpBtn = document.getElementById('closeHelp');
+
+        showHelpBtn.addEventListener('click', () => {
+          helpModal.style.display = 'flex';
+          closeHelpBtn.focus();
+        });
+        closeHelpBtn.addEventListener('click', () => {
+          helpModal.style.display = 'none';
+          showHelpBtn.focus();
+        });
+        document.addEventListener('keydown', (e) => {
+          if (helpModal.style.display === 'flex' && (e.key === 'Escape' || e.key === 'Esc')) {
+            helpModal.style.display = 'none';
+            showHelpBtn.focus();
+          }
+        });
+
+        // Llama a updateUIContext en cada cambio de modo o selección relevante
+        document.getElementById('selectMode').addEventListener('click', () => {
+          updateUIContext();
+        });
+        document.getElementById('connectMode').addEventListener('click', () => {
+          updateUIContext();
+        });
+        document.getElementById('globalMode').addEventListener('click', () => {
+          updateUIContext();
+        });
+        document.getElementById('individualMode').addEventListener('click', () => {
+          updateUIContext();
+        });
+        // Llama también tras cada selección de conexión
+        function updateSelectedConnectionsUI() {
+          if (editMode === 'connect') updateUIContext();
+        }
+        // Hook: tras cada cambio de selectedConnections, llama a updateSelectedConnectionsUI()
+        // (ya está en la lógica de click de conexiones)
+
+        // Llama al cargar
+        updateUIContext();
     </script>
 </body>
 </html>
