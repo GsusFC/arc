@@ -214,31 +214,36 @@
         <section id="connectionControls" class="flex flex-col gap-2 border-b border-white/20 pb-3" hidden>
             <h2 class="text-xs font-bold uppercase tracking-wide text-pink-400">Conexiones</h2>
             <div class="flex gap-2 justify-between">
-                <button id="globalMode" class="btn uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-pink-400">GLOBAL</button>
-                <button id="individualMode" class="btn uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-pink-400">INDIVIDUAL</button>
-            </div>
-            <div id="connectionSliderBlock" class="flex items-center gap-3" hidden>
-                <span class="text-xs">Factor</span>
-                <input id="connectionSlider" type="range" min="0.1" max="8.0" step="0.05" class="flex-1" />
-                <input id="connectionInput" type="number" min="0.1" max="8.0" step="0.05" class="w-16 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Factor de conexión" />
-            </div>
-            <span id="connectionsCount" class="text-xs text-green-400"></span>
+    <button id="globalMode" class="btn uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-pink-400">GLOBAL</button>
+    <button id="individualMode" class="btn uppercase font-semibold text-xs px-3 py-1 rounded border border-white transition focus:outline-none focus:ring-2 focus:ring-pink-400">INDIVIDUAL</button>
+</div>
+<div id="connectionSliderBlock" class="flex items-center gap-3" hidden>
+    <span class="text-xs">Factor</span>
+    <input id="connectionSlider" type="range" min="0.1" max="8.0" step="0.05" class="flex-1" />
+    <input id="connectionInput" type="number" min="0.1" max="8.0" step="0.05" class="w-16 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Factor de conexión" />
+</div>
+<div id="bridgeWidthBlock" class="flex items-center gap-3">
+    <span class="text-xs">Bridge width</span>
+    <input id="bridgeWidthSlider" type="range" min="1.0" max="4.0" step="0.1" class="flex-1" />
+    <input id="bridgeWidthInput" type="number" min="1.0" max="4.0" step="0.1" class="w-16 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Grosor del puente" />
+</div>
+<span id="connectionsCount" class="text-xs text-green-400"></span>
             
-            <button id="clearConnections" class="btn danger mt-2 uppercase font-semibold text-xs px-3 py-1 rounded border border-red-500 transition focus:outline-none focus:ring-2 focus:ring-red-400">CLEAR ALL</button>
-        </section>
+<button id="clearConnections" class="btn danger mt-2 uppercase font-semibold text-xs px-3 py-1 rounded border border-red-500 transition focus:outline-none focus:ring-2 focus:ring-red-400">CLEAR ALL</button>
+</section>
 
-        <!-- Configuración de grid (siempre visible) -->
-        <section class="flex flex-col gap-2 border-b border-white/20 pb-3">
-            <h2 class="text-xs font-bold uppercase tracking-wide text-yellow-400">Grid</h2>
-            <div class="flex items-center gap-2">
-                <label class="text-xs">Filas</label>
-                <input id="gridRowsInput" type="number" min="3" max="12" value="5" class="w-12 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Filas del grid" />
-                <span class="text-xs">×</span>
-                <label class="text-xs">Cols</label>
-                <input id="gridColsInput" type="number" min="3" max="12" value="5" class="w-12 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Columnas del grid" />
-                <span id="gridSizeValue" class="text-xs text-green-400 ml-2"></span>
-            </div>
-        </section>
+<!-- Configuración de grid (siempre visible) -->
+<section class="flex flex-col gap-2 border-b border-white/20 pb-3">
+    <h2 class="text-xs font-bold uppercase tracking-wide text-yellow-400">Grid</h2>
+    <div class="flex items-center gap-2">
+        <label class="text-xs">Filas</label>
+        <input id="gridRowsInput" type="number" min="3" max="12" value="5" class="w-12 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Filas del grid" />
+        <span class="text-xs">×</span>
+        <label class="text-xs">Cols</label>
+        <input id="gridColsInput" type="number" min="3" max="12" value="5" class="w-12 text-xs text-center bg-black border border-white text-white rounded focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-label="Columnas del grid" />
+        <span id="gridSizeValue" class="text-xs text-green-400 ml-2"></span>
+    </div>
+</section>
 
         <!-- Acciones -->
         <section class="flex flex-col gap-2">
@@ -288,6 +293,7 @@
         let gridCountX = 5, gridCountY = 5;
         let baseRadius = 30;
         let connectionFactor = 4.0;
+        let bridgeWidth = 2.4; // controla el grosor del puente (handleSize)
         let selectedCircles = [];
         let connections = [];
         let selectedConnections = []; // Conexiones seleccionadas para modo individual
@@ -295,6 +301,12 @@
         let editMode = 'select';
         let connectingFrom = null;
         let spacing = 120;
+        let draggingFrom = null;
+        let isDraggingConnect = false;
+        let dragStartX = 0, dragStartY = 0;
+        let mouseXGlobal = 0, mouseYGlobal = 0;
+        let suppressNextClick = false;
+        const DRAG_THRESHOLD_PX = 8;
         
         class Circle {
             constructor(x, y, radius, gridI, gridJ) {
@@ -363,26 +375,14 @@
                 if (conn.from.radius > 0 && conn.to.radius > 0) {
                     const r1 = conn.from.radius;
                     const r2 = conn.to.radius;
-                    const d = Math.sqrt((conn.from.x - conn.to.x) ** 2 + (conn.from.y - conn.to.y) ** 2);
-                    
-                    const usedFactor = conn.connectionFactor;
-                    const condition1 = d > (r1 + r2) * usedFactor;
-                    const condition2 = d <= Math.abs(r1 - r2);
-                    
-                    // Solo revisar si la metaball existe
-                    if (!condition1 && !condition2) {
-                        // Aproximación simple: verificar si el click está en la zona de la metaball
-                        const midX = (conn.from.x + conn.to.x) / 2;
-                        const midY = (conn.from.y + conn.to.y) / 2;
-                        const avgRadius = (r1 + r2) / 2;
-                        
-                        const distanceToMid = Math.sqrt((mouseX - midX) ** 2 + (mouseY - midY) ** 2);
-                        const threshold = avgRadius * 0.7;
-                        
-                        // Si está cerca del centro de la metaball, considerarlo un click (zona ampliada)
-                        if (distanceToMid <= threshold * 1.5) { // Zona de click más amplia
-                            return conn;
-                        }
+                    // Aproximación simple: verificar si el click está en la zona media entre los centros
+                    const midX = (conn.from.x + conn.to.x) / 2;
+                    const midY = (conn.from.y + conn.to.y) / 2;
+                    const avgRadius = (r1 + r2) / 2;
+                    const distanceToMid = Math.hypot(mouseX - midX, mouseY - midY);
+                    const threshold = avgRadius * 0.7;
+                    if (distanceToMid <= threshold * 1.5) {
+                        return conn;
                     }
                 }
             }
@@ -487,20 +487,17 @@
             
             // Cálculo de ángulos
             const cos_t1 = (radius_a * radius_a + d * d - radius_b * radius_b) / (2 * radius_a * d);
-            const cos_t2 = (radius_b * radius_b + d * d - radius_a * radius_a) / (2 * radius_b * d);
+            const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+            const maxSpread = Math.acos(clamp((r1 - r2) / d, -1, 1));
+            const u1 = Math.acos(clamp((r1*r1 + d*d - r2*r2) / (2 * r1 * d), -1, 1));
+            const u2 = Math.acos(clamp((r2*r2 + d*d - r1*r1) / (2 * r2 * d), -1, 1));
             
-            if (cos_t1 < -1 || cos_t1 > 1 || cos_t2 < -1 || cos_t2 > 1) {
-                console.log('❌ Valores fuera de rango para acos');
-                return;
-            }
+            if (!Number.isFinite(u1) || !Number.isFinite(u2)) return;
             
-            const t1 = Math.acos(cos_t1);
-            const t2 = Math.acos(cos_t2);
-            
-            if (isNaN(t1) || isNaN(t2)) {
-                console.log('❌ Ángulos inválidos');
-                return;
-            }
+            const angle1 = angleBetweenCenters + u1 + (maxSpread - u1) * connectionInfluence;
+            const angle2 = angleBetweenCenters - (u1 + (maxSpread - u1) * connectionInfluence);
+            const angle3 = angleBetweenCenters + Math.PI - u2 - (Math.PI - u2 - maxSpread) * connectionInfluence;
+            const angle4 = angleBetweenCenters - (Math.PI - u2 - (Math.PI - u2 - maxSpread) * connectionInfluence);
             
             // Longitud de handles para curvas Bezier
             const h = (4 * Math.tan(centerAngle / 4) / 3) * r;
@@ -606,20 +603,45 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
         
         // Función principal de dibujo (SVG)
         function draw() {
-            // Limpiar SVG
-            const elementsToRemove = svg.querySelectorAll('circle, path');
+            // Limpiar SVG (incluye líneas de ghost para no dejar rastro)
+            const elementsToRemove = svg.querySelectorAll('circle, path, text, line');
             elementsToRemove.forEach(el => el.remove());
             
             // Dibujar conexiones manuales primero (para que aparezcan detrás)
-            if (connections.length > 0) {
-                console.log('Dibujando', connections.length, 'conexiones manuales en SVG');
-            }
             connections.forEach((conn, index) => {
                 if (conn.from.radius > 0 && conn.to.radius > 0) {
-                    console.log(`Dibujando conexión SVG ${index + 1}:`, conn.from.gridI + '_' + conn.from.gridJ, '->', conn.to.gridI + '_' + conn.to.gridJ);
-                    connectCircles(conn.from, conn.to, conn); // Pasar el objeto conexión
+                    const res = connectCirclesKuckir(conn.from, conn.to, conn);
+                    if (!res) return;
+                    const { pathData, overlayWidth } = res;
+                    const metaballPath = document.createElementNS(svgNS, 'path');
+                    metaballPath.setAttribute('d', pathData);
+                    metaballPath.setAttribute('fill', '#ffffff');
+                    metaballPath.setAttribute('opacity', '1.0');
+                    // No interceptar eventos; overlay se encarga del click
+                    metaballPath.setAttribute('pointer-events', 'none');
+                    if (conn && conn.isSelected) {
+                        metaballPath.setAttribute('stroke', '#00ff00');
+                        metaballPath.setAttribute('stroke-width', '1');
+                    }
+                    svg.appendChild(metaballPath);
+
+                    // Overlay invisible para hit-testing preciso
+                    const overlay = document.createElementNS(svgNS, 'path');
+                    overlay.setAttribute('d', pathData);
+                    overlay.setAttribute('fill', 'none');
+                    overlay.setAttribute('stroke', 'transparent');
+                    overlay.setAttribute('stroke-width', String(overlayWidth));
+                    const overlayActive = (editMode === 'connect') || (connectionFactorMode === 'individual');
+                    overlay.setAttribute('pointer-events', overlayActive ? 'stroke' : 'none');
+                    overlay.setAttribute('stroke-linecap', 'round');
+                    overlay.setAttribute('stroke-linejoin', 'round');
+                    overlay.setAttribute('class', 'conn-overlay');
+                    overlay.style.cursor = overlayActive ? 'pointer' : 'default';
+                    overlay.dataset.connIndex = String(index);
+                    svg.appendChild(overlay);
                 }
             });
+
             
             // Dibujar círculos encima de las conexiones
             circles.forEach(circle => {
@@ -641,6 +663,24 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
                 connectingIndicator.setAttribute('opacity', '0.8');
                 svg.appendChild(connectingIndicator);
             }
+            
+            // Preview de conexión durante drag-to-connect
+            if (draggingFrom && isDraggingConnect) {
+                const hovered = circles.find(c => c.isHovered) || null;
+                const tx = (hovered && hovered !== draggingFrom) ? hovered.x : mouseXGlobal;
+                const ty = (hovered && hovered !== draggingFrom) ? hovered.y : mouseYGlobal;
+                const ghost = document.createElementNS(svgNS, 'line');
+                ghost.setAttribute('x1', String(draggingFrom.x));
+                ghost.setAttribute('y1', String(draggingFrom.y));
+                ghost.setAttribute('x2', String(tx));
+                ghost.setAttribute('y2', String(ty));
+                ghost.setAttribute('stroke', '#0ea5e9');
+                ghost.setAttribute('stroke-width', '2');
+                ghost.setAttribute('stroke-dasharray', '6 6');
+                ghost.setAttribute('opacity', '0.9');
+                ghost.setAttribute('pointer-events', 'none');
+                svg.appendChild(ghost);
+            }
         }
         
         // Event listeners del SVG
@@ -657,21 +697,44 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
             if (hoveredCircle) {
                 hoveredCircle.isHovered = true;
             }
+
+            // Actualizar posición global del mouse y gestionar drag-to-connect (solo en modo Connect)
+            mouseXGlobal = mouseX;
+            mouseYGlobal = mouseY;
+            if (draggingFrom && editMode === 'connect') {
+                const dist = Math.hypot(mouseX - dragStartX, mouseY - dragStartY);
+                if (!isDraggingConnect && dist >= DRAG_THRESHOLD_PX) {
+                    isDraggingConnect = true;
+                    const modeEl = document.getElementById('modeStatus');
+                    if (modeEl) modeEl.textContent = 'quick_connect_mode';
+                }
+            }
             
             draw();
         });
         
         svg.addEventListener('click', (event) => {
+            if (suppressNextClick) { suppressNextClick = false; return; }
             const rect = svg.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
             
             const clickedCircle = circles.find(circle => circle.contains(mouseX, mouseY));
-            const clickedConnection = !clickedCircle ? getClickedConnection(mouseX, mouseY) : null;
+            let clickedConnection = null;
+            const t = event.target;
+            if (!clickedCircle && t && t.dataset && typeof t.dataset.connIndex !== 'undefined') {
+                const idx = Number(t.dataset.connIndex);
+                if (!Number.isNaN(idx) && connections[idx]) {
+                    clickedConnection = connections[idx];
+                }
+            }
+            if (!clickedCircle && !clickedConnection) {
+                clickedConnection = getClickedConnection(mouseX, mouseY);
+            }
             
             // Manejar selección de conexiones en modo individual
             if (connectionFactorMode === 'individual' && clickedConnection && !clickedCircle) {
-                if (event.ctrlKey || event.metaKey) {
+                if (isMac ? event.metaKey : event.ctrlKey) {
                     // Multi-selección de conexiones
                     clickedConnection.isSelected = !clickedConnection.isSelected;
                     if (clickedConnection.isSelected) {
@@ -692,9 +755,12 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
                 if (selectedConnections.length === 1) {
                     const newValue = selectedConnections[0].connectionFactor;
                     document.getElementById('connectionSlider').value = newValue;
-                    document.getElementById('connectionValue').textContent = newValue.toFixed(1);
+                    const cv = document.getElementById('connectionValue');
+                    if (cv) cv.textContent = newValue.toFixed(1);
                 }
                 
+                // Actualizar UI contextual para mostrar/ocultar slider
+                if (typeof updateUIContext === 'function') updateUIContext();
                 draw();
                 return;
             }
@@ -703,7 +769,7 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
             
             if (editMode === 'select') {
                 // Modo selección
-                if (event.ctrlKey || event.metaKey) {
+                if (isMac ? event.metaKey : event.ctrlKey) {
                     // Multi-selección: toggle el estado del círculo clickeado
                     clickedCircle.isSelected = !clickedCircle.isSelected;
                     if (clickedCircle.isSelected) {
@@ -715,61 +781,79 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
                         // Remover de la selección
                         selectedCircles = selectedCircles.filter(c => c !== clickedCircle);
                     }
-                } else if (event.shiftKey && selectedCircles.length > 0) {
-                    // Selección por rango (Shift+Click)
-                    const firstSelected = selectedCircles[0];
-                    const startI = Math.min(firstSelected.gridI, clickedCircle.gridI);
-                    const endI = Math.max(firstSelected.gridI, clickedCircle.gridI);
-                    const startJ = Math.min(firstSelected.gridJ, clickedCircle.gridJ);
-                    const endJ = Math.max(firstSelected.gridJ, clickedCircle.gridJ);
-                    
-                    // Limpiar selección actual
-                    selectedCircles.forEach(c => c.isSelected = false);
-                    selectedCircles = [];
-                    
-                    // Seleccionar rango rectangular
-                    circles.forEach(circle => {
-                        if (circle.gridI >= startI && circle.gridI <= endI && 
-                            circle.gridJ >= startJ && circle.gridJ <= endJ) {
-                            circle.isSelected = true;
-                            selectedCircles.push(circle);
-                        }
-                    });
                 } else {
-                    // Selección simple: limpiar todo y seleccionar solo este
+                    // Selección simple: limpiar y seleccionar solo el clickeado
                     selectedCircles.forEach(c => c.isSelected = false);
                     selectedCircles = [clickedCircle];
                     clickedCircle.isSelected = true;
                 }
                 
                 updateSelectedInfo();
+                draw();
                 
             } else if (editMode === 'connect') {
-                // Modo conexión: solo aquí se puede crear una conexión
+                // Modo conexión: click en dos bolas consecutivas conecta (ya implementado aparte)
                 if (!connectingFrom) {
                     connectingFrom = clickedCircle;
                 } else if (connectingFrom !== clickedCircle) {
-                    // Verificar si ya existe la conexión
                     const existingConnection = connections.find(conn => 
                         (conn.from === connectingFrom && conn.to === clickedCircle) ||
                         (conn.from === clickedCircle && conn.to === connectingFrom)
                     );
                     if (!existingConnection) {
-                        connections.push({ 
-                            from: connectingFrom, 
-                            to: clickedCircle,
-                            connectionFactor: connectionFactor, // Factor individual inicial
-                            isSelected: false
-                        });
-                        console.log('🔗 Conexión creada!', connectingFrom.gridI + '_' + connectingFrom.gridJ, '<->', clickedCircle.gridI + '_' + clickedCircle.gridJ, 'Total:', connections.length);
+                        connections.push({ from: connectingFrom, to: clickedCircle, connectionFactor, isSelected: false });
+                        updateDisplays();
                     }
                     connectingFrom = null;
-                    updateDisplays();
                 } else {
                     connectingFrom = null;
                 }
+                draw();
             }
-            
+        });
+        
+        svg.addEventListener('mousedown', (event) => {
+            if (event.button !== 0 || editMode !== 'connect') return; // Sólo botón izquierdo y en modo Connect
+            const rect = svg.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            const clickedCircle = circles.find(circle => circle.contains(mouseX, mouseY));
+            if (!clickedCircle) return;
+            draggingFrom = clickedCircle;
+            dragStartX = mouseXGlobal = mouseX;
+            dragStartY = mouseYGlobal = mouseY;
+            isDraggingConnect = false;
+        });
+        
+        document.addEventListener('mouseup', (event) => {
+            if (!draggingFrom) return;
+            const wasDragging = isDraggingConnect;
+            const rect = svg.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+            const targetCircle = circles.find(circle => circle.contains(mouseX, mouseY));
+
+            if (editMode === 'connect' && wasDragging && targetCircle && targetCircle !== draggingFrom) {
+                const existing = connections.find(conn =>
+                    (conn.from === draggingFrom && conn.to === targetCircle) ||
+                    (conn.from === targetCircle && conn.to === draggingFrom)
+                );
+                if (!existing) {
+                    connections.push({
+                        from: draggingFrom,
+                        to: targetCircle,
+                        connectionFactor: connectionFactor,
+                        isSelected: false
+                    });
+                    updateDisplays();
+                }
+                suppressNextClick = true; // Evita que el click suelto dispare selección extra
+            }
+
+            draggingFrom = null;
+            isDraggingConnect = false;
+            const modeEl = document.getElementById('modeStatus');
+            if (modeEl) modeEl.textContent = (editMode === 'connect') ? 'connect_balls' : 'select_balls';
             draw();
         });
         
@@ -800,8 +884,20 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
         }
         
         function updateDisplays() {
-            if (connectionInput) connectionInput.value = connectionFactor;
+            // Sincronizar controles de connection factor según contexto
+            const connectionSliderEl = document.getElementById('connectionSlider');
+            const connectionValueEl = document.getElementById('connectionValue');
+            let cfToShow = connectionFactor;
+            if (connectionFactorMode === 'individual' && selectedConnections.length > 0) {
+                cfToShow = selectedConnections[0].connectionFactor;
+            }
+            if (connectionSliderEl) connectionSliderEl.value = cfToShow;
+            if (connectionInput) connectionInput.value = cfToShow;
+            if (connectionValueEl) connectionValueEl.textContent = Number(cfToShow).toFixed(1);
             document.getElementById('gridSizeValue').textContent = `${gridCountX}×${gridCountY} = ${gridCountX * gridCountY}`;
+            // Sync bridge width controls
+            if (bridgeWidthSlider) bridgeWidthSlider.value = bridgeWidth;
+            if (bridgeWidthInput) bridgeWidthInput.value = bridgeWidth.toFixed(1);
             
             // Actualizar contador de conexiones con información de selección
             let connectionsText = `${connections.length} connections`;
@@ -822,9 +918,12 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
         document.getElementById('selectMode').addEventListener('click', () => {
             editMode = 'select';
             connectingFrom = null;
-            document.getElementById('selectMode').classList.add('active');
-            document.getElementById('connectMode').classList.remove('active');
-            document.getElementById('modeStatus').textContent = 'select_balls';
+            const btnConnect = document.getElementById('connectMode');
+            if (btnConnect) btnConnect.classList.remove('active');
+            const btnSelect = document.getElementById('selectMode');
+            if (btnSelect) btnSelect.classList.add('active');
+            const modeEl = document.getElementById('modeStatus');
+            if (modeEl) modeEl.textContent = 'select_balls';
 
             draw();
         });
@@ -832,9 +931,12 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
         document.getElementById('connectMode').addEventListener('click', () => {
             editMode = 'connect';
             connectingFrom = null;
-            document.getElementById('connectMode').classList.add('active');
-            document.getElementById('selectMode').classList.remove('active');
-            document.getElementById('modeStatus').textContent = 'connect_balls';
+            const btnConnect = document.getElementById('connectMode');
+            if (btnConnect) btnConnect.classList.add('active');
+            const btnSelect = document.getElementById('selectMode');
+            if (btnSelect) btnSelect.classList.remove('active');
+            const modeEl = document.getElementById('modeStatus');
+            if (modeEl) modeEl.textContent = 'connect_balls';
             draw();
         });
         
@@ -843,17 +945,23 @@ if (ballSizeInput) ballSizeInput.value = baseRadius;
             connectionFactorMode = 'global';
             selectedConnections = []; // Limpiar selecciones
             connections.forEach(conn => conn.isSelected = false);
-            document.getElementById('globalMode').classList.add('active');
-            document.getElementById('individualMode').classList.remove('active');
-            document.getElementById('connectionModeStatus').textContent = 'affects_all_connections';
+            const btnGlobal = document.getElementById('globalMode');
+            if (btnGlobal) btnGlobal.classList.add('active');
+            const btnInd = document.getElementById('individualMode');
+            if (btnInd) btnInd.classList.remove('active');
+            const cmEl = document.getElementById('connectionModeStatus');
+            if (cmEl) cmEl.textContent = 'affects_all_connections';
             draw();
         });
         
         document.getElementById('individualMode').addEventListener('click', () => {
             connectionFactorMode = 'individual';
-            document.getElementById('individualMode').classList.add('active');
-            document.getElementById('globalMode').classList.remove('active');
-            document.getElementById('connectionModeStatus').textContent = 'click_connections_to_select';
+            const btnGlobal = document.getElementById('globalMode');
+            if (btnGlobal) btnGlobal.classList.remove('active');
+            const btnInd = document.getElementById('individualMode');
+            if (btnInd) btnInd.classList.add('active');
+            const cmEl = document.getElementById('connectionModeStatus');
+            if (cmEl) cmEl.textContent = 'click_connections_to_select';
             draw();
         });
         
@@ -862,6 +970,8 @@ const ballSizeSlider = document.getElementById('ballSizeSlider');
 const ballSizeInput = document.getElementById('ballSizeInput');
 const connectionSlider = document.getElementById('connectionSlider');
 const connectionInput = document.getElementById('connectionInput');
+const bridgeWidthSlider = document.getElementById('bridgeWidthSlider');
+const bridgeWidthInput = document.getElementById('bridgeWidthInput');
 
 // Sincronización robusta: solo enteros
 ballSizeSlider.addEventListener('input', (event) => {
@@ -874,6 +984,24 @@ ballSizeSlider.addEventListener('input', (event) => {
     draw();
 });
 
+// Bridge width controls
+bridgeWidthSlider.addEventListener('input', (event) => {
+    const v = parseFloat(event.target.value);
+    bridgeWidth = v;
+    bridgeWidthInput.value = v.toFixed(1);
+    draw();
+});
+bridgeWidthInput.addEventListener('input', (event) => {
+    let v = parseFloat(event.target.value);
+    const min = parseFloat(bridgeWidthSlider.min);
+    const max = parseFloat(bridgeWidthSlider.max);
+    if (isNaN(v)) v = min;
+    v = Math.max(min, Math.min(max, v));
+    bridgeWidth = v;
+    bridgeWidthSlider.value = v;
+    bridgeWidthInput.value = v.toFixed(1);
+    draw();
+});
 ballSizeInput.addEventListener('input', (event) => {
     let newSize = Math.round(Number(event.target.value));
     const min = parseInt(ballSizeSlider.min);
@@ -941,7 +1069,6 @@ connectionInput.addEventListener('input', (event) => {
         
         document.getElementById('clearConnections').addEventListener('click', () => {
             connections = [];
-console.log('Conexiones tras reset:', connections);
             updateDisplays();
             draw();
         });
@@ -973,6 +1100,7 @@ console.log('Conexiones tras reset:', connections);
         // === CONTROLES AVANZADOS DE MOUSE ===
         let spacePressed = false;
         let ctrlPressed = false;
+        const isMac = !!(navigator && navigator.platform && navigator.platform.toUpperCase().includes('MAC'));
         
         // Detectar teclas
         document.addEventListener('keydown', (event) => {
@@ -1022,53 +1150,85 @@ console.log('Conexiones tras reset:', connections);
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
             const hoveredCircle = circles.find(circle => circle.contains(mouseX, mouseY));
-            
-            if (hoveredCircle) {
-                const delta = -event.deltaY / 100; // Normalizar scroll
-                
-                if (editMode === 'select') {
-                    // En modo select: scroll ajusta tamaño de la bola
-                    if (spacePressed || hoveredCircle.isSelected) {
-                        
-                        if (selectedCircles.length > 1 && hoveredCircle.isSelected) {
-                            // Si hay múltiples bolas seleccionadas y hacemos scroll sobre una de ellas,
-                            // cambiar el tamaño de TODAS las seleccionadas
-                            const deltaSize = delta * 3;
-                            selectedCircles.forEach(circle => {
-                                const newRadius = Math.max(0, Math.min(100, circle.radius + deltaSize));
-                                circle.radius = newRadius;
-                            });
-                            
-                            // Actualizar slider con el valor de la bola sobre la que hicimos hover
-                            document.getElementById('ballSizeSlider').value = hoveredCircle.radius;
-                            updateBallSizeDisplay();
-                            
-                        } else {
-                            // Comportamiento normal para una sola bola
-                            const newRadius = Math.max(0, Math.min(100, hoveredCircle.radius + delta * 3));
-                            hoveredCircle.radius = newRadius;
-                            
-                            // Actualizar slider si está seleccionada
-                            if (hoveredCircle.isSelected) {
-                                document.getElementById('ballSizeSlider').value = newRadius;
-                                updateBallSizeDisplay();
-                            }
+            const delta = -event.deltaY / 100; // Normalizar scroll
+
+            if (editMode === 'connect') {
+                // Ajuste de Connection Factor por rueda (independiente de hoveredCircle)
+                const slider = document.getElementById('connectionSlider');
+                const min = slider ? parseFloat(slider.min) : 0.1;
+                const max = slider ? parseFloat(slider.max) : 8.0;
+                const step = 0.1;
+
+                if (connectionFactorMode === 'individual') {
+                    // 1) Si el target es un overlay de conexión, ajustar esa conexión
+                    let adjustedAny = false;
+                    const t = event.target;
+                    if (t && t.classList && t.classList.contains('conn-overlay') && typeof t.dataset.connIndex !== 'undefined') {
+                        const idx = Number(t.dataset.connIndex);
+                        if (!Number.isNaN(idx) && connections[idx]) {
+                            const c = connections[idx];
+                            const nv = Math.max(min, Math.min(max, Number((c.connectionFactor + delta * step).toFixed(1))));
+                            c.connectionFactor = nv;
+                            adjustedAny = true;
                         }
-                        draw();
                     }
-                } else if (editMode === 'connect') {
-                    // En modo connect: scroll ajusta connection factor
-                    const newFactor = Math.max(0.5, Math.min(5.0, connectionFactor + delta * 0.1));
-                    connectionFactor = newFactor;
-                    document.getElementById('connectionSlider').value = connectionFactor;
-                    updateDisplays();
-                    draw();
+                    // 2) Si no hay overlay, ajustar conexiones seleccionadas (si existen)
+                    if (!adjustedAny && selectedConnections.length > 0) {
+                        selectedConnections.forEach(c => {
+                            const nv = Math.max(min, Math.min(max, Number((c.connectionFactor + delta * step).toFixed(1))));
+                            c.connectionFactor = nv;
+                        });
+                        adjustedAny = true;
+                    }
+                    // 3) Fallback: ajustar global si no hay objetivo individual
+                    if (!adjustedAny) {
+                        const nf = Math.max(min, Math.min(max, Number((connectionFactor + delta * step).toFixed(1))));
+                        connectionFactor = nf;
+                    }
+                } else {
+                    // Global: actualizar factor global y propagar a todas las conexiones
+                    const nf = Math.max(min, Math.min(max, Number((connectionFactor + delta * step).toFixed(1))));
+                    connectionFactor = nf;
+                    connections.forEach(c => { c.connectionFactor = connectionFactor; });
                 }
+
+                // Sincronizar UI
+                if (slider) slider.value = connectionFactor;
+                const cv = document.getElementById('connectionValue');
+                if (cv) cv.textContent = (connectionFactor).toFixed(1);
+                updateDisplays();
+                draw();
+                return;
+            }
+
+            // En modo select: scroll ajusta tamaño de la bola si procede
+            if (hoveredCircle && (spacePressed || hoveredCircle.isSelected)) {
+                if (selectedCircles.length > 1 && hoveredCircle.isSelected) {
+                    // Cambiar el tamaño de TODAS las seleccionadas
+                    const deltaSize = delta * 3;
+                    selectedCircles.forEach(circle => {
+                        const newRadius = Math.max(0, Math.min(100, circle.radius + deltaSize));
+                        circle.radius = newRadius;
+                    });
+                    // Actualizar slider con el valor de la bola sobre la que hicimos hover
+                    document.getElementById('ballSizeSlider').value = hoveredCircle.radius;
+                    updateBallSizeDisplay();
+                } else {
+                    // Comportamiento normal para una sola bola
+                    const newRadius = Math.max(0, Math.min(100, hoveredCircle.radius + delta * 3));
+                    hoveredCircle.radius = newRadius;
+                    if (hoveredCircle.isSelected) {
+                        document.getElementById('ballSizeSlider').value = newRadius;
+                        updateBallSizeDisplay();
+                    }
+                }
+                draw();
             }
         });
         
         // Click mejorado con teclas modificadoras
         svg.addEventListener('click', (event) => {
+            if (suppressNextClick) { suppressNextClick = false; return; }
             const rect = svg.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
@@ -1088,37 +1248,9 @@ console.log('Conexiones tras reset:', connections);
                 }
                 updateSelectedInfo();
                 draw();
-                return;
-            }
-            
-            // Ctrl/Cmd + Click en modo connect = Conexión rápida
-            if (ctrlPressed && editMode === 'select') {
-                // Cambiar temporalmente a modo connect
-                if (!connectingFrom) {
-                    connectingFrom = clickedCircle;
-                    document.getElementById('modeStatus').textContent = 'quick_connect_mode';
-                } else if (connectingFrom !== clickedCircle) {
-                    const existingConnection = connections.find(conn => 
-                        (conn.from === connectingFrom && conn.to === clickedCircle) ||
-                        (conn.from === clickedCircle && conn.to === connectingFrom)
-                    );
-                    
-                    if (!existingConnection) {
-                        connections.push({ 
-                            from: connectingFrom, 
-                            to: clickedCircle,
-                            connectionFactor: connectionFactor,
-                            isSelected: false
-                        });
-                    }
-                    connectingFrom = null;
-                    document.getElementById('modeStatus').textContent = 'select_balls';
-                    updateDisplays();
-                } else {
-                    connectingFrom = null;
-                    document.getElementById('modeStatus').textContent = 'select_balls';
-                }
-                draw();
+                // Evitar que el handler de burbuja revierta el toggle
+                event.stopPropagation();
+                event.preventDefault();
                 return;
             }
             
@@ -1130,6 +1262,9 @@ console.log('Conexiones tras reset:', connections);
             try {
                 // Crear una copia del SVG para descarga
                 const svgClone = svg.cloneNode(true);
+                // Eliminar overlays invisibles de hit-testing
+                const overlays = svgClone.querySelectorAll('.conn-overlay');
+                overlays.forEach(el => el.parentNode && el.parentNode.removeChild(el));
                 
                 // Asegurar namespaces y atributos correctos
                 svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
@@ -1197,7 +1332,80 @@ console.log('Conexiones tras reset:', connections);
         init();
         draw();
 
-        // --- UI CONTEXTUAL Y MODAL DE AYUDA ---
+        // --- Implementación metaball Ivan Kuckir ---
+ function connectCirclesKuckir(c1, c2, connection) {
+    // Implementación basada en Varun Vachhar: https://varun.ca/metaballs/
+    const r1 = Math.max(0, c1.radius);
+    const r2 = Math.max(0, c2.radius);
+    if (r1 === 0 || r2 === 0) return;
+    const dx = c2.x - c1.x;
+    const dy = c2.y - c1.y;
+    const d = Math.hypot(dx, dy);
+    if (d <= 1e-6) return; // centros coincidentes
+    if (d <= Math.abs(r1 - r2)) return; // una dentro de otra
+
+    const usedFactor = (connection?.connectionFactor ?? connectionFactor);
+    // Normalizamos factor [0,8] -> v ∈ [0,1]
+    const v = Math.max(0, Math.min(1, usedFactor / 8.0));
+
+    // Cálculos angulares
+    const angleBetweenCenters = Math.atan2(dy, dx);
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const maxSpread = Math.acos(clamp((r1 - r2) / d, -1, 1));
+    const u1 = Math.acos(clamp((r1*r1 + d*d - r2*r2) / (2 * r1 * d), -1, 1));
+    const u2 = Math.acos(clamp((r2*r2 + d*d - r1*r1) / (2 * r2 * d), -1, 1));
+    if (!Number.isFinite(u1) || !Number.isFinite(u2)) return;
+
+    const angle1 = angleBetweenCenters + u1 + (maxSpread - u1) * v;
+    const angle2 = angleBetweenCenters - (u1 + (maxSpread - u1) * v);
+    const angle3 = angleBetweenCenters + Math.PI - u2 - (Math.PI - u2 - maxSpread) * v;
+    const angle4 = angleBetweenCenters - (Math.PI - u2 - (Math.PI - u2 - maxSpread) * v);
+
+    // Puntos
+    const p1 = { x: c1.x + r1 * Math.cos(angle1), y: c1.y + r1 * Math.sin(angle1) };
+    const p2 = { x: c1.x + r1 * Math.cos(angle2), y: c1.y + r1 * Math.sin(angle2) };
+    const p3 = { x: c2.x + r2 * Math.cos(angle3), y: c2.y + r2 * Math.sin(angle3) };
+    const p4 = { x: c2.x + r2 * Math.cos(angle4), y: c2.y + r2 * Math.sin(angle4) };
+
+    // Handles Bézier
+    const handleSize = bridgeWidth;
+    const totalRadius = r1 + r2;
+    const dist13 = Math.hypot(p1.x - p3.x, p1.y - p3.y);
+    let d2Base = Math.min(v * handleSize, dist13 / totalRadius);
+    const overlapScale = Math.min(1, (d * 2) / (r1 + r2));
+    let d2 = d2Base * overlapScale;
+    if (!Number.isFinite(d2) || d2 < 0) d2 = 0;
+
+    const HALF_PI = Math.PI / 2;
+    const r1h = r1 * d2;
+    const r2h = r2 * d2;
+    const h1 = { x: p1.x + Math.cos(angle1 - HALF_PI) * r1h, y: p1.y + Math.sin(angle1 - HALF_PI) * r1h };
+    const h2 = { x: p2.x + Math.cos(angle2 + HALF_PI) * r1h, y: p2.y + Math.sin(angle2 + HALF_PI) * r1h };
+    const h3 = { x: p3.x + Math.cos(angle3 + HALF_PI) * r2h, y: p3.y + Math.sin(angle3 + HALF_PI) * r2h };
+    const h4 = { x: p4.x + Math.cos(angle4 - HALF_PI) * r2h, y: p4.y + Math.sin(angle4 - HALF_PI) * r2h };
+
+    // Elegir arco largo si no solapan (fuera), corto si solapan
+    const escaped = d > (r1 + r2);
+    const largeArcFlag2 = escaped ? 1 : 0;
+    const largeArcFlag1 = escaped ? 1 : 0;
+    const sweepFlag = 0;
+
+    const pathData = [
+        'M', p1.x, p1.y,
+        'C', h1.x, h1.y, h3.x, h3.y, p3.x, p3.y,
+        'A', r2, r2, 0, largeArcFlag2, sweepFlag, p4.x, p4.y,
+        'C', h4.x, h4.y, h2.x, h2.y, p2.x, p2.y,
+        'A', r1, r1, 0, largeArcFlag1, sweepFlag, p1.x, p1.y,
+        'Z'
+    ].join(' ');
+
+    // Ancho sugerido para overlay de click: proporcional a radios
+    const overlayWidth = Math.max(12, (r1 + r2) * 0.3);
+
+    return { pathData, overlayWidth };
+ }
+
+// --- UI CONTEXTUAL Y MODAL DE AYUDA ---
         function updateUIContext() {
           // Paneles
           const ballControls = document.getElementById('ballControls');
