@@ -82,6 +82,31 @@
     </style>
 </head>
 <body class="bg-black text-white">
+    <!-- Version Navigation -->
+    <div class="fixed top-4 right-4 z-20 flex flex-col space-y-2">
+        <div class="px-3 py-2 bg-black border border-white text-center">
+            <div class="text-xs text-green-400 font-medium">🎨 CANVAS DYNAMIC</div>
+        </div>
+        
+        <!-- Quick Switch -->
+        <div class="flex space-x-1">
+            <button onclick="window.location.href='svg-version.html'" 
+                    class="px-2 py-1 bg-black border border-purple-400 text-purple-400 text-xs hover:bg-purple-400 hover:text-black transition-all" 
+                    title="SVG Static">
+                📥
+            </button>
+            <button onclick="window.location.href='shape-editor.html'" 
+                    class="px-2 py-1 bg-black border border-yellow-400 text-yellow-400 text-xs hover:bg-yellow-400 hover:text-black transition-all" 
+                    title="Shape Editor">
+                🛠️
+            </button>
+            <button onclick="window.location.href='svg-editor.html'" 
+                    class="px-2 py-1 bg-black border border-green-400 text-green-400 text-xs hover:bg-green-400 hover:text-black transition-all" 
+                    title="SVG Editor">
+                🎨
+            </button>
+        </div>
+    </div>
     
     <!-- Controles Flotantes -->
     <div class="fixed top-4 left-4 z-10 floating-controls" style="font-family: 'JetBrains Mono', monospace;">
