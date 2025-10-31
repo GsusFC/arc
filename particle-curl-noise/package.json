@@ -1,0 +1,31 @@
+{
+  "name": "particle-curl-noise-gpgpu",
+  "version": "1.0.0",
+  "description": "GPGPU-accelerated particle system with curl noise and mouse interaction",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.12",
+    "vite-plugin-glsl": "^1.2.1"
+  },
+  "keywords": [
+    "particles",
+    "curl-noise",
+    "gpgpu",
+    "webgl",
+    "three.js",
+    "react"
+  ],
+  "author": "",
+  "license": "MIT"
+}
